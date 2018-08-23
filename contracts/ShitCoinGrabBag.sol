@@ -43,4 +43,26 @@ contract ShitCoinGrabBag {
     ourTokenBalances[tokenContract] += amount;
     return true;
   }
+
+  function chooseAToken() public onlyOwner returns (bool) {
+    require(tokenContractAddresses.length > 0, "need some initial tokens");
+    uint index = pickRandomTokenIndex();
+    address chosenTokenContract = tokenContractAddresses[index];
+    require(ourTokenBalances[chosenTokenContract] >= 1, "should not happen");
+    ourTokenBalances[chosenTokenContract] -= 1;
+    if (ourTokenBalances[chosenTokenContract] == 0) {
+      delete tokenContractAddresses[index];
+    }
+    return true;
+  }
+  
+  // https://gist.github.com/alexvandesande/259b4ffb581493ec0a1c
+  // TODO improve randomness
+  function randomGen(uint seed, uint max) public view returns (uint randomNumber) {
+    return(uint(keccak256(abi.encodePacked(block.blockhash(block.number-1), seed )))%max);
+  }
+
+  function pickRandomTokenIndex() public view returns (uint) {
+    return randomGen(block.timestamp, tokenContractAddresses.length);
+  }
 }

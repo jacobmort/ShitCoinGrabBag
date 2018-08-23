@@ -1,32 +1,11 @@
-var shitCoinGrabBag = artifacts.require("./ShitCoinGrabBag.sol");
+const AbortHelper = require('./AbortHelper');
+const shitCoinGrabBag = artifacts.require("./ShitCoinGrabBag.sol");
 
 contract('ShitCoinGrabBag', function(accounts) {
   let shitCoinGrabBagInstance;
   const owner    = accounts[0];
   const nonOwner = accounts[1];
   const contractAccount = accounts[2];
-
-  async function tryCatch(promise, errType) {
-    try {
-        await promise;
-        throw null;
-    }
-    catch (error){
-        assert(error.message.startsWith(PREFIX + errType), "Expected an error starting with '" + PREFIX + errType + "' but got '" + error.message + "' instead");
-    }
-  }
-
-  let errTypes = {
-    revert            : "revert",
-    outOfGas          : "out of gas",
-    invalidJump       : "invalid JUMP",
-    invalidOpcode     : "invalid opcode",
-    stackOverflow     : "stack overflow",
-    stackUnderflow    : "stack underflow",
-    staticStateChange : "static state change"
-  };
-
-  let PREFIX = "VM Exception while processing transaction: ";
 
   before(async function() {
     shitCoinGrabBagInstance = await shitCoinGrabBag.deployed();
@@ -70,26 +49,25 @@ contract('ShitCoinGrabBag', function(accounts) {
         assert.equal(keys[1], accounts[3]);
       });
     });
-    
 
     it("abort if call causes overflow", async function() {
-      await tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, Math.pow(2,256), "0x0", {from: owner}), errTypes.revert);
+      await AbortHelper.tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, Math.pow(2,256), "0x0", {from: owner}), "revert");
     });
 
     it("abort with an error if negative number", async function() {
-      await tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, -1, "0x0", {from: nonOwner}), errTypes.revert);
+      await AbortHelper.tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, -1, "0x0", {from: nonOwner}), "revert");
     });
 
     it("abort with an error if called by a non-owner", async function() {
-      await tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, 1, "0x0", {from: nonOwner}), errTypes.revert);
+      await AbortHelper.tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, 1, "0x0", {from: nonOwner}), "revert");
     });
 
     it("abort with an error if called by a non-owner", async function() {
-      await tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, 1, "0x0", {from: nonOwner}), errTypes.revert);
+      await AbortHelper.tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, 1, "0x0", {from: nonOwner}), "revert");
     });
 
     it("abort with an error if called with empty address", async function() {
-      await tryCatch(shitCoinGrabBagInstance.registerToken("0x0", 1, "0x0", {from: owner}), errTypes.revert);
+      await AbortHelper.tryCatch(shitCoinGrabBagInstance.registerToken("0x0", 1, "0x0", {from: owner}), "revert");
     });
   });
 });
