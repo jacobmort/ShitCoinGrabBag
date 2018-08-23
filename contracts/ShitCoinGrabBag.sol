@@ -1,5 +1,7 @@
 pragma solidity ^0.4.24;
 
+
+
 contract ShitCoinGrabBag {
   /* stores erc20 balances and corresponding contract addresses
 	
@@ -35,8 +37,10 @@ contract ShitCoinGrabBag {
     // To be called once we have observed transferFrom fire on the erc20 tokenContract with this contract's address
     require(tokenContract != address(0), "contact address must be valid");
     require(ourTokenBalances[tokenContract] + amount >= ourTokenBalances[tokenContract], "must not decrease amount");
+    if (ourTokenBalances[tokenContract] == 0) {
+      tokenContractAddresses.push(tokenContract); // Only add if unique
+    }
     ourTokenBalances[tokenContract] += amount;
-    tokenContractAddresses.push(tokenContract);
     return true;
   }
 }

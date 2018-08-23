@@ -44,7 +44,7 @@ contract('ShitCoinGrabBag', function(accounts) {
         assert(balance.equals(0));
         assert.equal(keys.length, 0);
       });
-      it("adds to balance and keys", async function() {
+      it("adds to balance but not keys for same contractAccount", async function() {
         await shitCoinGrabBagInstance.registerToken(contractAccount, 1, "0x0", {from: owner});
         let balance = await shitCoinGrabBagInstance.getTokenBalance(contractAccount);
         let keys = await shitCoinGrabBagInstance.getTokenContracts();
@@ -55,9 +55,19 @@ contract('ShitCoinGrabBag', function(accounts) {
         balance = await shitCoinGrabBagInstance.getTokenBalance(contractAccount);
         keys = await shitCoinGrabBagInstance.getTokenContracts();
         assert(balance.equals(3));
+        assert.equal(keys.length, 1);
+        assert.equal(keys[0], contractAccount);
+      });
+      it("adds to balance and keys for different contractAccount", async function() {
+        await shitCoinGrabBagInstance.registerToken(accounts[3], 2, "0x0", {from: owner});
+        let keys = await shitCoinGrabBagInstance.getTokenContracts();
+        let balance = await shitCoinGrabBagInstance.getTokenBalance(accounts[3]);
+        let otherBalance = await shitCoinGrabBagInstance.getTokenBalance(contractAccount);
+        assert(balance.equals(2));
+        assert(otherBalance.equals(3));
         assert.equal(keys.length, 2);
         assert.equal(keys[0], contractAccount);
-        assert.equal(keys[1], contractAccount);
+        assert.equal(keys[1], accounts[3]);
       });
     });
     
