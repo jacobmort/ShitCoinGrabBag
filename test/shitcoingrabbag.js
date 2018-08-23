@@ -4,6 +4,7 @@ contract('ShitCoinGrabBag', function(accounts) {
   let shitCoinGrabBagInstance;
   const owner    = accounts[0];
   const nonOwner = accounts[1];
+  const contractAccount = accounts[2];
 
   async function tryCatch(promise, errType) {
     try {
@@ -25,43 +26,60 @@ contract('ShitCoinGrabBag', function(accounts) {
     staticStateChange : "static state change"
   };
 
-let PREFIX = "VM Exception while processing transaction: ";
+  let PREFIX = "VM Exception while processing transaction: ";
+
+  before(async function() {
+    shitCoinGrabBagInstance = await shitCoinGrabBag.deployed();
+  });
+
+  it('sets owner address', async function() {
+    assert.equal(await shitCoinGrabBagInstance.owner(), accounts[0]);
+  });
 
   describe("registerToken:", function() {
-    before(async function() {
-      shitCoinGrabBagInstance = await shitCoinGrabBag.deployed();
+    describe("called by owner:", function() {
+      it("starts as 0 balance and no keys", async function() {
+        let balance = await shitCoinGrabBagInstance.getTokenBalance(accounts[2]);
+        let keys = await shitCoinGrabBagInstance.getTokenContracts();
+        assert(balance.equals(0));
+        assert.equal(keys.length, 0);
+      });
+      it("adds to balance and keys", async function() {
+        await shitCoinGrabBagInstance.registerToken(contractAccount, 1, "0x0", {from: owner});
+        let balance = await shitCoinGrabBagInstance.getTokenBalance(contractAccount);
+        let keys = await shitCoinGrabBagInstance.getTokenContracts();
+        assert(balance.equals(1));
+        assert.equal(keys.length, 1);
+        assert.equal(keys[0], contractAccount);
+        await shitCoinGrabBagInstance.registerToken(contractAccount, 2, "0x0", {from: owner});
+        balance = await shitCoinGrabBagInstance.getTokenBalance(contractAccount);
+        keys = await shitCoinGrabBagInstance.getTokenContracts();
+        assert(balance.equals(3));
+        assert.equal(keys.length, 2);
+        assert.equal(keys[0], contractAccount);
+        assert.equal(keys[1], contractAccount);
+      });
     });
-
-    it('sets owner address', async function() {
-      assert.equal(await shitCoinGrabBagInstance.owner(), accounts[0]);
-    });
-
-    it("successful if called by an owner and sets balance", async function() {
-      let balance = await shitCoinGrabBagInstance.getTokenBalance(accounts[2]);
-      assert(balance.equals(0));
-      await shitCoinGrabBagInstance.registerToken(accounts[2], 1, {from: owner});
-      balance = await shitCoinGrabBagInstance.getTokenBalance(accounts[2]);
-      assert(balance.equals(1));
-    });
+    
 
     it("abort if call causes overflow", async function() {
-      await tryCatch(shitCoinGrabBagInstance.registerToken(accounts[2], Math.pow(2,256), {from: owner}), errTypes.revert);
+      await tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, Math.pow(2,256), "0x0", {from: owner}), errTypes.revert);
     });
 
     it("abort with an error if negative number", async function() {
-      await tryCatch(shitCoinGrabBagInstance.registerToken(accounts[2], -1, {from: nonOwner}), errTypes.revert);
+      await tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, -1, "0x0", {from: nonOwner}), errTypes.revert);
     });
 
     it("abort with an error if called by a non-owner", async function() {
-      await tryCatch(shitCoinGrabBagInstance.registerToken(accounts[2], 1, {from: nonOwner}), errTypes.revert);
+      await tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, 1, "0x0", {from: nonOwner}), errTypes.revert);
     });
 
     it("abort with an error if called by a non-owner", async function() {
-      await tryCatch(shitCoinGrabBagInstance.registerToken(accounts[2], 1, {from: nonOwner}), errTypes.revert);
+      await tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, 1, "0x0", {from: nonOwner}), errTypes.revert);
     });
 
     it("abort with an error if called with empty address", async function() {
-      await tryCatch(shitCoinGrabBagInstance.registerToken("0x0", 1, {from: owner}), errTypes.revert);
+      await tryCatch(shitCoinGrabBagInstance.registerToken("0x0", 1, "0x0", {from: owner}), errTypes.revert);
     });
   });
 });

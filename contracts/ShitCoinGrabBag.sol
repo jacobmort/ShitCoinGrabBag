@@ -12,7 +12,8 @@ contract ShitCoinGrabBag {
 
   address public owner = msg.sender;
   mapping (address => uint256) ourTokenBalances; // Erc20 Contract Address -> our balance of those coins
-  
+  address[] public tokenContractAddresses; // Since mapping doesn't have a way of determining keys
+
   modifier onlyOwner()
   {
     require(
@@ -22,14 +23,20 @@ contract ShitCoinGrabBag {
     _;
   }
 
-  function registerToken(address tokenContract, uint256 amount) public onlyOwner returns (bool){
+  function getTokenBalance(address tokenContract) public view returns (uint256) {
+    return ourTokenBalances[tokenContract];
+  }
+
+  function getTokenContracts() public view returns (address[]) {
+    return tokenContractAddresses;
+  }
+
+  function registerToken(address tokenContract, uint256 amount, address sender) public onlyOwner returns (bool){
+    // To be called once we have observed transferFrom fire on the erc20 tokenContract with this contract's address
     require(tokenContract != address(0), "contact address must be valid");
     require(ourTokenBalances[tokenContract] + amount >= ourTokenBalances[tokenContract], "must not decrease amount");
     ourTokenBalances[tokenContract] += amount;
+    tokenContractAddresses.push(tokenContract);
     return true;
-  }
-
-  function getTokenBalance(address tokenContract) public view returns (uint256){
-    return ourTokenBalances[tokenContract];
   }
 }

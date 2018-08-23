@@ -32,7 +32,7 @@ contract DummyErc20 is EIP20Interface {
   }
 
   function transfer(address _to, uint256 _value) public returns (bool success) {
-    require(balances[msg.sender] >= _value);
+    require(balances[msg.sender] >= _value, "balance not great enough");
     balances[msg.sender] -= _value;
     balances[_to] += _value;
     emit Transfer(msg.sender, _to, _value); //solhint-disable-line indent, no-unused-vars
@@ -41,7 +41,7 @@ contract DummyErc20 is EIP20Interface {
 
   function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
     uint256 allowance = allowed[_from][msg.sender];
-    require(balances[_from] >= _value && allowance >= _value);
+    require(balances[_from] >= _value && allowance >= _value, "balance not great enough");
     balances[_to] += _value;
     balances[_from] -= _value;
     if (allowance < MAX_UINT256) {
