@@ -63,8 +63,6 @@ contract ShitCoinGrabBag {
     tokensTransferredTo[destination] = chosenTokenContract;
     EIP20Interface erc20 = EIP20Interface(chosenTokenContract);
     erc20.transfer(destination, 1);
-    // erc20.approve(destination, 1);
-    // erc20.transferFrom(owner, destination, 1);
   }
   
   // https://gist.github.com/alexvandesande/259b4ffb581493ec0a1c
