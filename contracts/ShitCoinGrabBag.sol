@@ -1,6 +1,5 @@
 pragma solidity ^0.4.24;
-
-
+import "./EIP20Interface.sol";
 
 contract ShitCoinGrabBag {
   /* stores erc20 balances and corresponding contract addresses
@@ -15,6 +14,7 @@ contract ShitCoinGrabBag {
   address public owner = msg.sender;
   mapping (address => uint256) ourTokenBalances; // Erc20 Contract Address -> our balance of those coins
   address[] public tokenContractAddresses; // Since mapping doesn't have a way of determining keys
+  mapping (address => address) public tokensTransferredTo;
 
   modifier onlyOwner()
   {
@@ -33,6 +33,10 @@ contract ShitCoinGrabBag {
     return tokenContractAddresses;
   }
 
+  function getContractAddressOfTransferredToken(address winner) public view returns (address) {
+    return tokensTransferredTo[winner];
+  }
+
   function registerToken(address tokenContract, uint256 amount, address sender) public onlyOwner returns (bool){
     // To be called once we have observed transferFrom fire on the erc20 tokenContract with this contract's address
     require(tokenContract != address(0), "contact address must be valid");
@@ -44,22 +48,29 @@ contract ShitCoinGrabBag {
     return true;
   }
 
-  function chooseAToken() public onlyOwner returns (bool) {
+  function transferAToken(address destination) public onlyOwner {
+    // TODO require that tokensTransferredTo[destination] be 0x0 so that if destination hasn't already
+    // claimed previous token it isn't overwritten and then they don't know erc20 address for token they received
     require(tokenContractAddresses.length > 0, "need some initial tokens");
-    uint index = pickRandomTokenIndex();
-    address chosenTokenContract = tokenContractAddresses[index];
+    uint indexForTokenContractToTransferFrom = pickRandomTokenIndex();
+    address chosenTokenContract = tokenContractAddresses[indexForTokenContractToTransferFrom];
     require(ourTokenBalances[chosenTokenContract] >= 1, "should not happen");
     ourTokenBalances[chosenTokenContract] -= 1;
     if (ourTokenBalances[chosenTokenContract] == 0) {
-      delete tokenContractAddresses[index];
+      // TODO This just sets value to 0x0 and length of array does not change.  Need to actually delete
+      delete tokenContractAddresses[indexForTokenContractToTransferFrom];
     }
-    return true;
+    tokensTransferredTo[destination] = chosenTokenContract;
+    EIP20Interface erc20 = EIP20Interface(chosenTokenContract);
+    erc20.transfer(destination, 1);
+    // erc20.approve(destination, 1);
+    // erc20.transferFrom(owner, destination, 1);
   }
   
   // https://gist.github.com/alexvandesande/259b4ffb581493ec0a1c
-  // TODO improve randomness
+  // TODO improve randomness?
   function randomGen(uint seed, uint max) public view returns (uint randomNumber) {
-    return(uint(keccak256(abi.encodePacked(block.blockhash(block.number-1), seed )))%max);
+    return(uint(keccak256(abi.encodePacked(blockhash(block.number-1), seed )))%max);
   }
 
   function pickRandomTokenIndex() public view returns (uint) {

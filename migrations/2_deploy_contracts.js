@@ -4,6 +4,6 @@ var ShitCoinGrabBag = artifacts.require("./ShitCoinGrabBag.sol");
 
 module.exports = function(deployer) {
   deployer.deploy(SimpleStorage);
-  // deployer.deploy(DummyErc20);
+  deployer.deploy(DummyErc20, 100, "erctwenty", 10, "erc");
   deployer.deploy(ShitCoinGrabBag);
 };
