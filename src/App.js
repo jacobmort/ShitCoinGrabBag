@@ -1,6 +1,8 @@
 import React, { Component } from 'react'
-import ShitCoinGrabBag from '../build/contracts/ShitCoinGrabBag.json'
 import getWeb3 from './utils/getWeb3'
+import BigNumber from 'bignumber.js';
+
+import ShitCoinGrabBag from '../build/contracts/ShitCoinGrabBag.json'
 import erc20Abi from 'human-standard-token-abi';
 
 import './css/oswald.css'
@@ -63,6 +65,15 @@ class App extends Component {
         return this.callContractMethod(Object.keys(this.state.erc20Contracts), 'balanceOf', '0x0');
       }).then((balances) => {
         this.populateState(balances, 'balanceOf');
+        return this.callContractMethod(Object.keys(this.state.erc20Contracts), 'decimals');
+      }).then((decimals) => {
+        this.populateState(decimals, 'decimals');
+        const erc20Contracts = this.state.erc20Contracts;
+        Object.keys(erc20Contracts).forEach((addresses) => {
+          const divisor = new BigNumber(10).pow(erc20Contracts[addresses].decimals);
+          erc20Contracts[addresses].balance = erc20Contracts[addresses].balanceOf.div(divisor)
+        })
+        this.setState({erc20Contracts: erc20Contracts});
       });
 
     // this.state.web3.eth.getAccounts((error, accounts) => {
@@ -103,8 +114,8 @@ class App extends Component {
     // });
     return new Promise((resolve, reject) => {
       let results = {};
-      results['0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'] = {};
-      results['0xb3104b4b9da82025e8b9f8fb28b3553ce2f67069'] = {};
+      results['0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'] = {balance: new BigNumber(0)};
+      results['0xb3104b4b9da82025e8b9f8fb28b3553ce2f67069'] = {balance: new BigNumber(0)};
       resolve(results);
     });
   }
@@ -151,23 +162,6 @@ class App extends Component {
     return Promise.all(promises);
   }
 
-  getDecimalsOfTokens(tokenContractAddresses) {
-    return new Promise((resolve, reject) => {
-      const erc20Contracts = this.state.erc20Contracts;
-      tokenContractAddresses.forEach((tokenContract) => {
-        erc20Contracts[tokenContract].contract.decimals.call(ourAddress, (err, decimals) => {
-          if (err) {
-            reject(err);
-          } else {
-            const erc20Contracts = this.state.erc20Contracts;
-            erc20Contracts[tokenContract].balance = balance;
-            this.setState({erc20Contracts: erc20Contracts});
-          }
-        });
-      }, this);
-    }); 
-  }
-
   render() {
     return (
       <div className="App">
@@ -198,7 +192,7 @@ class App extends Component {
                       <img src={`https://raw.githubusercontent.com/trustwallet/tokens/master/images/${address}.png`} />
                       { this.state.erc20Contracts[address].name }
                     </td>
-                    <td>{ this.state.erc20Contracts[address].balanceOf }</td>
+                    <td>{ this.state.erc20Contracts[address].balance.toNumber() }</td>
                     <td><a href={`https://etherscan.io/address/${address}`}>{address}</a></td>
                   </tr>)
                 })}
