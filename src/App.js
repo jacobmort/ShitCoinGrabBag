@@ -42,15 +42,11 @@ class App extends Component {
     const contract = require('truffle-contract');
     const shitCoinGrabBag = contract(ShitCoinGrabBag);
     shitCoinGrabBag.setProvider(this.state.web3.currentProvider);
-    let shitCoinGrabBagInstance;
     // Get accounts.
 
     shitCoinGrabBag.deployed().then((instance) => {
       this.setState({shitCoinGrabBagInstance: instance});
-      this.getAvailableTokens();
-    });
-
-    this.getAvailableTokens()
+      this.getAvailableTokens()
       .then((erc20Contracts) => {
         this.setState({erc20Contracts: erc20Contracts});
         return this.initTokenContracts(Object.keys(erc20Contracts));
@@ -61,7 +57,6 @@ class App extends Component {
       })
       .then((names) => {
         this.populateState(names, 'name');
-        // return this.getAmountOfTokens(Object.keys(erc20Contracts), '0x0');
         return this.callContractMethod(Object.keys(this.state.erc20Contracts), 'balanceOf', '0x0');
       }).then((balances) => {
         this.populateState(balances, 'balanceOf');
@@ -74,7 +69,10 @@ class App extends Component {
           erc20Contracts[addresses].balance = erc20Contracts[addresses].balanceOf.div(divisor)
         })
         this.setState({erc20Contracts: erc20Contracts});
-      });
+      }).catch((err) => {
+        console.log(err);
+      });;
+    });
 
     // this.state.web3.eth.getAccounts((error, accounts) => {
     //   simpleStorage.deployed().then((instance) => {
@@ -106,18 +104,22 @@ class App extends Component {
   }
 
   getAvailableTokens() {
-    // this.state.shitCoinGrabBagInstance.getTokenContracts.call().then((results) => {
-    //   results = ['0xd26114cd6EE289AccF82350c8d8487fedB8A0C07', '0xb3104b4b9da82025e8b9f8fb28b3553ce2f67069'];
-    //   this.setState({erc20Contracts: results});
-    //   console.log(this.state.erc20Contracts);
-    //   this.getNamesForTokens(results);
-    // });
     return new Promise((resolve, reject) => {
-      let results = {};
-      results['0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'] = {balance: new BigNumber(0)};
-      results['0xb3104b4b9da82025e8b9f8fb28b3553ce2f67069'] = {balance: new BigNumber(0)};
-      resolve(results);
+      this.state.shitCoinGrabBagInstance.getTokenContracts.call().then((err,results) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(results);
+        }
+      });
     });
+    //   let results = {};
+    //   results['0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'] = {balance: new BigNumber(0)};
+    //   results['0xb3104b4b9da82025e8b9f8fb28b3553ce2f67069'] = {balance: new BigNumber(0)};
+    //   results['0xd850942ef8811f2a866692a623011bde52a462c1'] = {balance: new BigNumber(0)};
+    //   results['0x05f4a42e251f2d52b8ed15e9fedaacfcef1fad27'] = {balance: new BigNumber(0)};
+    //   resolve(results);
+    // });
   }
 
   initTokenContracts(tokenContractAddresses) {
