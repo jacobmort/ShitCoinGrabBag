@@ -1,6 +1,7 @@
-import { React, Component } from 'react'
-import SimpleStorageContract from '../build/contracts/SimpleStorage.json'
+import React, { Component } from 'react'
+import ShitCoinGrabBag from '../build/contracts/ShitCoinGrabBag.json'
 import getWeb3 from './utils/getWeb3'
+import erc20Abi from 'human-standard-token-abi';
 
 import './css/oswald.css'
 import './css/open-sans.css'
@@ -12,7 +13,7 @@ class App extends Component {
     super(props)
 
     this.state = {
-      storageValue: 0,
+      erc20Contracts: {},
       web3: null
     }
   }
@@ -30,59 +31,179 @@ class App extends Component {
       // Instantiate contract once web3 provided.
       this.instantiateContract()
     })
-    .catch(() => {
-      console.log('Error finding web3.')
+    .catch((e) => {
+      console.log(`Error finding web3:${e}`);
     })
   }
 
   instantiateContract() {
-    /*
-     * SMART CONTRACT EXAMPLE
-     *
-     * Normally these functions would be called in the context of a
-     * state management library, but for convenience I've placed them here.
-     */
-
-    const contract = require('truffle-contract')
-    const simpleStorage = contract(SimpleStorageContract)
-    simpleStorage.setProvider(this.state.web3.currentProvider)
-
-    // Declaring this for later so we can chain functions on SimpleStorage.
-    var simpleStorageInstance
-
+    const contract = require('truffle-contract');
+    const shitCoinGrabBag = contract(ShitCoinGrabBag);
+    shitCoinGrabBag.setProvider(this.state.web3.currentProvider);
+    let shitCoinGrabBagInstance;
     // Get accounts.
-    this.state.web3.eth.getAccounts((error, accounts) => {
-      simpleStorage.deployed().then((instance) => {
-        simpleStorageInstance = instance
 
-        // Stores a given value, 5 by default.
-        return simpleStorageInstance.set(5, {from: accounts[0]})
-      }).then((result) => {
-        // Get the value from the contract to prove it worked.
-        return simpleStorageInstance.get.call(accounts[0])
-      }).then((result) => {
-        // Update state with the result.
-        return this.setState({ storageValue: result.c[0] })
+    shitCoinGrabBag.deployed().then((instance) => {
+      this.setState({shitCoinGrabBagInstance: instance});
+      this.getAvailableTokens();
+    });
+
+    this.getAvailableTokens()
+      .then((erc20Contracts) => {
+        this.setState({erc20Contracts: erc20Contracts});
+        return this.initTokenContracts(Object.keys(erc20Contracts));
       })
-    })
+      .then((erc20Contracts) => {
+        this.setState({erc20Contracts: erc20Contracts});
+        return this.callContractMethod(Object.keys(erc20Contracts), 'name');
+      })
+      .then((names) => {
+        this.populateState(names, 'name');
+        // return this.getAmountOfTokens(Object.keys(erc20Contracts), '0x0');
+        return this.callContractMethod(Object.keys(this.state.erc20Contracts), 'balanceOf', '0x0');
+      }).then((balances) => {
+        this.populateState(balances, 'balanceOf');
+      });
+
+    // this.state.web3.eth.getAccounts((error, accounts) => {
+    //   simpleStorage.deployed().then((instance) => {
+    //     simpleStorageInstance = instance
+        
+    //     // Stores a given value, 5 by default.
+    //     return simpleStorageInstance.set(5, {from: accounts[0]})
+    //   }).then((result) => {
+    //     // Get the value from the contract to prove it worked.
+    //     return simpleStorageInstance.get.call(accounts[0])
+    //   }).then((result) => {
+    //     // Update state with the result.
+    //     return this.setState({ storageValue: result.c[0] })
+    //   })
+    // })
+  }
+
+  registerToken() {
+  //   this.state.shitCoinGrabBagInstance.registerToken.call(
+  //     "0xd26114cd6EE289AccF82350c8d8487fedB8A0C07", 
+  //     1, 
+  //     "0xd26114cd6EE289AccF82350c8d8487fedB8A0C07", 
+  //     {from: this.state.shitCoinGrabBagInstance.address })
+  //   .then(() => {
+  //     this.getAvailableTokens();
+  //   }).catch((e) => {
+  //     console.log(e);
+  //   });
+  }
+
+  getAvailableTokens() {
+    // this.state.shitCoinGrabBagInstance.getTokenContracts.call().then((results) => {
+    //   results = ['0xd26114cd6EE289AccF82350c8d8487fedB8A0C07', '0xb3104b4b9da82025e8b9f8fb28b3553ce2f67069'];
+    //   this.setState({erc20Contracts: results});
+    //   console.log(this.state.erc20Contracts);
+    //   this.getNamesForTokens(results);
+    // });
+    return new Promise((resolve, reject) => {
+      let results = {};
+      results['0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'] = {};
+      results['0xb3104b4b9da82025e8b9f8fb28b3553ce2f67069'] = {};
+      resolve(results);
+    });
+  }
+
+  initTokenContracts(tokenContractAddresses) {
+    return new Promise((resolve, reject) => {
+      const erc20Contracts = this.state.erc20Contracts;
+      tokenContractAddresses.forEach((tokenContract) => {
+        const token = this.state.web3.eth.contract(erc20Abi).at(tokenContract);
+        erc20Contracts[tokenContract].contract = token;
+      }, this);
+      resolve(erc20Contracts);
+    });
+  }
+
+  populateState(results, methodName) {
+    const erc20Contracts = this.state.erc20Contracts;
+    results.forEach((result) => {
+      erc20Contracts[result.address][methodName] = result[methodName];
+    }, this);
+    this.setState({erc20Contracts: erc20Contracts});
+}
+
+  callContractMethod(tokenContractAddresses, method, address) {
+    const promises = [];
+    const erc20Contracts = this.state.erc20Contracts;
+    tokenContractAddresses.forEach((tokenContract) => {
+      promises.push(new Promise((resolve, reject) => {
+        const callArgs = {}
+        if (address) {
+          // callArgs.from = address;
+        }
+        erc20Contracts[tokenContract].contract[method].call((err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            const returnObj = { address: tokenContract };
+            returnObj[method] = result;
+            resolve(returnObj);
+          }
+        });
+      }));
+    }, this);
+    return Promise.all(promises);
+  }
+
+  getDecimalsOfTokens(tokenContractAddresses) {
+    return new Promise((resolve, reject) => {
+      const erc20Contracts = this.state.erc20Contracts;
+      tokenContractAddresses.forEach((tokenContract) => {
+        erc20Contracts[tokenContract].contract.decimals.call(ourAddress, (err, decimals) => {
+          if (err) {
+            reject(err);
+          } else {
+            const erc20Contracts = this.state.erc20Contracts;
+            erc20Contracts[tokenContract].balance = balance;
+            this.setState({erc20Contracts: erc20Contracts});
+          }
+        });
+      }, this);
+    }); 
   }
 
   render() {
     return (
       <div className="App">
-        <nav className="navbar pure-menu pure-menu-horizontal">
-            <a href="#" className="pure-menu-heading pure-menu-link">Truffle Box</a>
-        </nav>
-
+        <div className="pure-u-1-1 title">
+          <h1>Shit Coin Grab Bag</h1>
+        </div>
         <main className="container">
           <div className="pure-g">
-            <div className="pure-u-1-1">
-              <h1>Good to Go!</h1>
-              <p>Your Truffle Box is installed and ready.</p>
-              <h2>Smart Contract Example</h2>
-              <p>If your contracts compiled and migrated successfully, below will show a stored value of 5 (by default).</p>
-              <p>Try changing the value stored on <strong>line 59</strong> of App.js.</p>
-              <p>The stored value is: {this.state.storageValue}</p>
+            <div className="pure-u-1-3">
+              <img src="images/PooBag.png"/>
+              <button onClick={this.registerToken.bind(this)}>Deposit</button>
+            </div>
+            <div className="pure-u-2-3">
+              <h3>Erc20 Bag Contents</h3>
+              <table className="pure-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Amount</th>
+                    <th>Address</th>
+                  </tr>
+                </thead>
+                <tbody>
+                {Object.keys(this.state.erc20Contracts).map((address, i) => {
+                  return( 
+                  <tr key={i} className={i % 2 !== 0 ? 'pure-table-odd' : ''}>
+                    <td>
+                      <img src={`https://raw.githubusercontent.com/trustwallet/tokens/master/images/${address}.png`} />
+                      { this.state.erc20Contracts[address].name }
+                    </td>
+                    <td>{ this.state.erc20Contracts[address].balanceOf }</td>
+                    <td><a href={`https://etherscan.io/address/${address}`}>{address}</a></td>
+                  </tr>)
+                })}
+                </tbody>
+              </table>
             </div>
           </div>
         </main>
