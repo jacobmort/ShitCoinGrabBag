@@ -239,9 +239,15 @@ class App extends Component {
       <div className="App">
         <div className="pure-u-1-1 title">
           <h1>Shit Coin Grab Bag</h1>
+          <div>
+          When life gives you lemon tokens use this to squeeze them into different lemons.
         </div>
         <div>
-            
+          Send whole token amounts, assumes erc20 decimals 18
+        </div>
+        <div>
+          <i>Your Current account: <a href="{`https://etherscan.io/address/${this.state.account}`}">{ this.state.account }</a></i>
+        </div>
         </div>
         <main className="container">
           <div className="pure-g">
@@ -262,9 +268,9 @@ class App extends Component {
                 </thead>
                 <tbody>
                   <tr>
-                    <td><button onClick={this.registerToken.bind(this)}>Deposit</button></td>                    
+                    <td><button onClick={this.registerToken.bind(this)}>Exchange</button></td>                    
                     <td>
-                      <input type="text" placeholder="Amount of coins" value={this.state.erc20SendAmount} onChange={this.handleAmountChange.bind(this)}/>
+                      <input type="text" placeholder="Whole tokens" value={this.state.erc20SendAmount} onChange={this.handleAmountChange.bind(this)}/>
                     </td>
                     <td>
                       <input type="text" placeholder="Erc20 Address" value={this.state.erc20SendAddress} onChange={this.handleAddressChange.bind(this)}/>
