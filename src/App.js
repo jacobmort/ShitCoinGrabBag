@@ -115,7 +115,7 @@ class App extends Component {
 
   getInfoForTokens(addresses, erc20Contracts) {
     addresses.forEach((address) => {
-      if (!address in erc20Contracts) {
+      if (!(address in erc20Contracts)) {
         erc20Contracts[address] = {};
       }
     });
@@ -126,7 +126,7 @@ class App extends Component {
         return this.callContractMethod(this.state.erc20Contracts, 'name');
       }).then((names) => {
         this.populateErc20Contracts(names, 'name', this.state.erc20Contracts);
-        return this.callContractMethod(this.state.erc20Contracts, 'balanceOf', this.state.shitCoinGrabBagInstance.address);
+        return this.callContractMethod(this.state.erc20Contracts, 'balanceOf', this.state.account);
       }).then((balances) => { // Get balances for shit coin contract
         balances.forEach((balance) => {
           balance.balanceOfUser = new BigNumber(balance.balanceOf); // Convert from string
@@ -138,10 +138,10 @@ class App extends Component {
         const erc20Contracts = this.state.erc20Contracts;
         Object.keys(erc20Contracts).forEach((addresses) => {
           const divisor = new BigNumber(10).pow(erc20Contracts[addresses].decimals);
-          erc20Contracts[addresses].balanceOfUser = erc20Contracts[addresses].balanceOfBag.div(divisor)
-        })
+          erc20Contracts[addresses].balanceOfUser = erc20Contracts[addresses].balanceOfUser.div(divisor)
+        });
         this.setState({erc20Contracts: erc20Contracts});
-        resolve(this.state.erc20Contracts);
+        resolve(erc20Contracts);
       }).catch((err) => {
         console.log(err);
       });
@@ -246,14 +246,16 @@ class App extends Component {
 
   handleAddressChange(evt) {
     this.setState({ erc20UserSendAddress: evt.target.value });
-    getInfoForTokens([this.erc20UserSendAddress]);
+    if (this.state.web3.utils.isAddress(evt.target.value)) {
+      this.getInfoForTokens([evt.target.value], this.state.erc20Contracts);
+    }
   }
 
   handleAmountChange(evt) {
     this.setState({ erc20UserSendAmount: evt.target.value });
   }
 
-  emptyBag() {
+  emptyBagElement() {
     if (this.state.erc20Contracts.length === 0) {
       <div id="emptyBag" >Bag is empty!</div>
     } else {
@@ -261,7 +263,7 @@ class App extends Component {
     }
   }
 
-  currentAccount() {
+  currentAccountElement() {
     if (this.state.account ) {
       return <i>Your Current account: <a href="{`https://etherscan.io/address/${this.state.account}`}">{ this.state.account }</a></i>
     } else {
@@ -269,13 +271,22 @@ class App extends Component {
     }
   }
 
-  winnerWinnerChickenDinner() {
+  winnerWinnerChickenDinnerElement() {
     if (this.state.tokenWonByUser) {
       return <div><h3>CONGRATS on your shit coin it has been transferred to your address on</h3>
         <div>{<a href="`https://etherscan.io/address/${this.state.tokenWonByUser}`">{this.state.tokenWonByUser}</a>}</div></div>
     } else {
       return '';
     }
+  }
+
+  userBalanceElement() {
+    let value = new BigNumber(0);
+    if (this.state.erc20UserSendAddress in this.state.erc20Contracts &&
+        'balanceOfUser' in this.state.erc20Contracts[this.state.erc20UserSendAddress]) {
+      value = this.state.erc20Contracts[this.state.erc20UserSendAddress].balanceOfUser;
+    }
+    return <input type="text" name="balance" className="pure-input-1-2" placeholder="Your balance for address" value={value.toNumber()} readOnly />;
   }
 
   render() {
@@ -290,17 +301,17 @@ class App extends Component {
           Send whole token amounts, assumes erc20 decimals 18
         </div>
         <div>
-          {this.currentAccount()}
+          {this.currentAccountElement()}
         </div>
         </div>
         <main className="container">
           <div className="pure-g">
             <div className="pure-u-1-3">
-            {this.winnerWinnerChickenDinner()}
+            {this.winnerWinnerChickenDinnerElement()}
               <img src="images/PooBag.png"/>
             </div>
             <div className="contents pure-u-2-3">
-              {this.emptyBag()}
+              {this.emptyBagElement()}
               <form className="pure-form">
                 <div className="pure-g">
                     <div className="pure-u-1">
@@ -314,8 +325,8 @@ class App extends Component {
                     <input type="text" name="tokens" className="pure-input-1-2" placeholder="Whole tokens" value={this.state.erc20UserSendAmount} onChange={this.handleAmountChange.bind(this)}/>
                   </div>
                   <div className="pure-u-2-3">
-                    <label htmlFor="balance">of balance</label>
-                    <input type="text" name="balance" className="pure-input-1-2" placeholder="Your balance for address" value={this.state.erc20Contracts[this.state.erc20UserSendAddress].balanceOfUser} readOnly />
+                    <label htmlFor="balance">of your balance</label>
+                    { this.userBalanceElement() }
                   </div>
                 </div>
                 <button type="submit" onClick={this.registerToken.bind(this)} className="pure-button pure-button-primary">Exchange My Lemon</button>
