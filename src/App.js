@@ -20,7 +20,8 @@ class App extends Component {
       erc20SendAddress: '0x0139f72d20b29fa0dca007192c9834496d7770a8',
       erc20SendAmount: 1,
       shitCoinOwner: '0xfb577a7a1aba359ee87186c4081eafff73befcf349a031f6132cfe3405aefb9f', // TODO can't have this on frontend- move to a backend service,
-      tokenWonByUser: null
+      tokenWonByUser: null,
+      watchEvents: []
     }
   }
 
@@ -37,6 +38,10 @@ class App extends Component {
     })
   }
 
+  componentWillUnmount() {
+    this.state.watchEvents.forEach((event) => event.stopWatching());
+  }
+
   instantiateContract() {
     const contract = require('truffle-contract');
     const shitCoinGrabBag = contract(ShitCoinGrabBag);
@@ -49,7 +54,26 @@ class App extends Component {
     })
     .then((instance) => {
       this.setState({shitCoinGrabBagInstance: instance});
+      return this.watchContractEvents();
+    }).then((events) => {
+      this.setState({watchEvents: events});
       return this.refreshAvailableTokens();
+    });
+  }
+
+  watchContractEvents() {
+    return new Promise((resolve, reject) => {
+      const events = [];
+      events.push(this.state.shitCoinGrabBagInstance.ChoseToken());
+      events.push(this.state.shitCoinGrabBagInstance.ChoseIndex());
+      events.push(this.state.shitCoinGrabBagInstance.TransferToken());
+      events.push(this.state.shitCoinGrabBagInstance.ReceivedToken());
+      events.forEach((event) => {
+        event.watch((err, result) => {
+          console.log(result);
+        });
+      });
+      resolve(events);
     });
   }
 
@@ -118,7 +142,17 @@ class App extends Component {
   }
 
   getUserWonToken() {
-    return this.state.shitCoinGrabBagInstance.getContractAddressOfTransferredToken.call(this.state.account);
+    return new Promise((resolve, reject) => {
+      this.state.shitCoinGrabBagInstance.getContractAddressOfTransferredToken.call(this.state.account)
+      .then((tokenWonByUser) => {
+        if (!web3.toBigNumber(tokenWonByUser).isZero())
+        {
+          resolve(tokenWonByUser);
+        } else {
+          resolve(null);
+        }
+      });
+    })
   }
 
   getGrabBagTokensHas() {
@@ -159,7 +193,7 @@ class App extends Component {
       erc20Contracts[result.address][methodName] = result[methodName];
     }, this);
     this.setState({erc20Contracts: erc20Contracts});
-}
+  }
 
   callContractMethod(tokenContractAddresses, method, callArgs) { // Calls method on all contracts
     const promises = [];
@@ -215,6 +249,9 @@ class App extends Component {
       <div className="App">
         <div className="pure-u-1-1 title">
           <h1>Shit Coin Grab Bag</h1>
+        </div>
+        <div>
+          
         </div>
         <main className="container">
           <div className="pure-g">

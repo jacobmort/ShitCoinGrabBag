@@ -40,6 +40,7 @@ contract('ShitCoinGrabBag', function(accounts) {
           let tokenBalanceOurs = await shitCoinGrabBagInstance.getTokenBalance(erc20ContractInstance.address);
           let tokenBalanceTheirs = await erc20ContractInstance.balanceOf(user);
           
+
           assert.equal(tokenContractDestination, erc20ContractInstance.address, "only 1 address to choose");
           assert.equal(tokenContractAddresses.length, 0, "there was only 1 contract with 1 token = no more");
           assert(tokenBalanceOurs.equals(0), "shit coin has been drained");
