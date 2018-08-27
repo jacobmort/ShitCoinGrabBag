@@ -86,7 +86,9 @@ contract ShitCoinGrabBag {
   }
 
   function deleteTokenContract(uint256 index) public onlyOwner returns(bool) { 
-    // This moves the last element of the array into spot we are deleting
+    // This moves the last element of the array into spot we are deleting then shortens length by 1
+    require(tokenContractAddresses.length > 0, "Must have something to delete");
+    require(tokenContractAddresses.length >= index, "Must be valid index");
     address lastElement = tokenContractAddresses[tokenContractAddresses.length-1];
     tokenContractAddresses[index] = lastElement;
     tokenContractAddresses.length--;

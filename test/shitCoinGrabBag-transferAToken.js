@@ -10,29 +10,29 @@ contract('ShitCoinGrabBag', function(accounts) {
   const user = accounts[1];
   const oneErc20TokenOf18Decimal = 1 * ( 10 ** 18);
 
-  beforeEach(async function() {
+  beforeEach(async () => {
     shitCoinGrabBagInstance = await shitCoinGrabBag.new({from: owner});
     erc20ContractInstance = await dummyErc20.new(oneErc20TokenOf18Decimal * 100, "shitcoin1", 10, "sht1", { from: owner });
     anotherErc20ContractInstance = await dummyErc20.new(oneErc20TokenOf18Decimal * 100, "shitcoin2", 10, "sht2", { from: owner });
   });
 
-  describe("transferAToken:", function() {
-    it("abort when no tokens", async function() {
+  describe("transferAToken:", () => {
+    it("abort when no tokens", async () => {
       await AbortHelper.tryCatch(shitCoinGrabBagInstance.transferAToken(user, {from: owner}), "revert");
     });
  
-    describe("one type of erc20", function(){
-      describe("one token available", function(){
-        beforeEach(async function() {
+    describe("one type of erc20", () =>{
+      describe("one token available", () =>{
+        beforeEach(async () => {
           await erc20ContractInstance.transfer(shitCoinGrabBagInstance.address, oneErc20TokenOf18Decimal, { from: owner });
           await shitCoinGrabBagInstance.registerToken(erc20ContractInstance.address, 1, {from: owner});
         });
 
-        it("abort with an error if called by a non-owner", async function() {
+        it("abort with an error if called by a non-owner", async () => {
           await AbortHelper.tryCatch(shitCoinGrabBagInstance.transferAToken(user, {from: user}), "revert");
         });
 
-        it("chooses the available one, removes from contract and transfers.  Then aborts on next call when empty", async function() {
+        it("chooses the available one, removes from contract and transfers.  Then aborts on next call when empty", async () => {
           await shitCoinGrabBagInstance.transferAToken(user, {from: owner});
           
           let tokenContractDestination = await shitCoinGrabBagInstance.getContractAddressOfTransferredToken(user);
@@ -48,12 +48,12 @@ contract('ShitCoinGrabBag', function(accounts) {
           await AbortHelper.tryCatch(shitCoinGrabBagInstance.transferAToken(user, {from: owner}), "revert");
         });
       });
-      describe("more than 1 available", function() {
-        beforeEach(async function() {
+      describe("more than 1 available", () => {
+        beforeEach(async () => {
           await erc20ContractInstance.transfer(shitCoinGrabBagInstance.address, 2 * oneErc20TokenOf18Decimal, { from: owner });
           await shitCoinGrabBagInstance.registerToken(erc20ContractInstance.address, 2, {from: owner});
         });
-        it("can take twice, removes from contract and transfers then aborts on extra call", async function() {
+        it("can take twice, removes from contract and transfers then aborts on extra call", async () => {
             await shitCoinGrabBagInstance.transferAToken(user, {from: owner});
 
             let tokenContractDestination = await shitCoinGrabBagInstance.getContractAddressOfTransferredToken(user);
@@ -81,14 +81,14 @@ contract('ShitCoinGrabBag', function(accounts) {
         });
       });
     });
-    describe("with more than type of one token:", function() {
-      beforeEach(async function() {
+    describe("with more than type of one token:", () => {
+      beforeEach(async () => {
         await erc20ContractInstance.transfer(shitCoinGrabBagInstance.address, oneErc20TokenOf18Decimal, { from: owner });
         await shitCoinGrabBagInstance.registerToken(erc20ContractInstance.address, 1, {from: owner});
         await anotherErc20ContractInstance.transfer(shitCoinGrabBagInstance.address, oneErc20TokenOf18Decimal, { from: owner });
         await shitCoinGrabBagInstance.registerToken(anotherErc20ContractInstance.address, 1, {from: owner});
       });
-      it("can take twice, removes from contract and transfers then aborts on extra call", async function() {
+      it("can take twice, removes from contract and transfers then aborts on extra call", async () => {
         await shitCoinGrabBagInstance.transferAToken(user, {from: owner});
 
         let tokenContractDestination = await shitCoinGrabBagInstance.getContractAddressOfTransferredToken(user);

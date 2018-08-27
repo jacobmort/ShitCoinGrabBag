@@ -17,9 +17,8 @@ class App extends Component {
     this.state = {
       erc20Contracts: {},
       web3: null,
-      erc20SendAddress: '0x0139f72d20b29fa0dca007192c9834496d7770a8',
-      erc20SendAmount: 1,
-      shitCoinOwner: '0xfb577a7a1aba359ee87186c4081eafff73befcf349a031f6132cfe3405aefb9f', // TODO can't have this on frontend- move to a backend service,
+      erc20SendAddress: '0x0139f72d20b29fa0dca007192c9834496d7770a8', // Default value for erc20 user is depositing from
+      erc20SendAmount: 1, // Default # of tokens to send
       tokenWonByUser: null,
       watchEvents: []
     }
@@ -115,29 +114,20 @@ class App extends Component {
 
   registerToken() {
     const token = new this.state.web3.eth.Contract(erc20Abi, this.state.erc20SendAddress);
-    const self = this; // TODO why arrow func not maintain 'this'?
     token.methods.decimals().call()
     .then((decimals) => {
-      return Promise.resolve(self.state.erc20SendAmount * ( 10 ** decimals));
+      return Promise.resolve(this.state.erc20SendAmount * ( 10 ** decimals));
     })
     .then((amountToSend) => {
       return token.methods.transfer(this.state.shitCoinGrabBagInstance.address, amountToSend).send({ from: this.state.account})
     }).then((result) => {
-        // return self.state.shitCoinGrabBagInstance.coinDrawing(
-        // self.state.erc20SendAddress,
-        // self.state.erc20SendAmount, // Leave out decimals when we store amount in our contract
-        // self.state.account,
-        // {from: self.state.account })
-        return self.state.shitCoinGrabBagInstance.registerToken(
-          self.state.erc20SendAddress,
-          self.state.erc20SendAmount, // Leave out decimals when we store amount in our contract
-          {from: self.state.account });
+        return this.state.shitCoinGrabBagInstance.coinDrawing(
+        this.state.erc20SendAddress,
+        this.state.erc20SendAmount, // Leave out decimals when we store amount in our contract
+        this.state.account,
+        {from: this.state.account })
     }).then(() => {
-      return self.state.shitCoinGrabBagInstance.transferAToken(
-        self.state.account,
-        {from: self.state.account });
-    }).then(() => {
-      self.refreshAvailableTokens();
+      this.refreshAvailableTokens();
     });
   }
 
@@ -237,7 +227,7 @@ class App extends Component {
 
   winnerWinnerChickenDinner() {
     if (this.state.tokenWonByUser) {
-      return <div><h3>CONGRATS on your shit coin:</h3>
+      return <div><h3>CONGRATS on your shit coin you can find it here:</h3>
         <div>{<a href="`https://etherscan.io/address/${this.state.tokenWonByUser}`">{this.state.tokenWonByUser}</a>}</div></div>
     } else {
       return '';
@@ -251,7 +241,7 @@ class App extends Component {
           <h1>Shit Coin Grab Bag</h1>
         </div>
         <div>
-          
+            
         </div>
         <main className="container">
           <div className="pure-g">
