@@ -24,13 +24,13 @@ contract('ShitCoinGrabBag', function(accounts) {
         assert.equal(keys.length, 0);
       });
       it("adds to balance but not keys for same contractAccount", async function() {
-        await shitCoinGrabBagInstance.registerToken(contractAccount, 1, "0x0", {from: owner});
+        await shitCoinGrabBagInstance.registerToken(contractAccount, 1, {from: owner});
         let balance = await shitCoinGrabBagInstance.getTokenBalance(contractAccount);
         let keys = await shitCoinGrabBagInstance.getTokenContracts();
         assert(balance.equals(1));
         assert.equal(keys.length, 1);
         assert.equal(keys[0], contractAccount);
-        await shitCoinGrabBagInstance.registerToken(contractAccount, 2, "0x0", {from: owner});
+        await shitCoinGrabBagInstance.registerToken(contractAccount, 2, {from: owner});
         balance = await shitCoinGrabBagInstance.getTokenBalance(contractAccount);
         keys = await shitCoinGrabBagInstance.getTokenContracts();
         assert(balance.equals(3));
@@ -38,7 +38,7 @@ contract('ShitCoinGrabBag', function(accounts) {
         assert.equal(keys[0], contractAccount);
       });
       it("adds to balance and keys for different contractAccount", async function() {
-        await shitCoinGrabBagInstance.registerToken(accounts[3], 2, "0x0", {from: owner});
+        await shitCoinGrabBagInstance.registerToken(accounts[3], 2, {from: owner});
         let keys = await shitCoinGrabBagInstance.getTokenContracts();
         let balance = await shitCoinGrabBagInstance.getTokenBalance(accounts[3]);
         let otherBalance = await shitCoinGrabBagInstance.getTokenBalance(contractAccount);
@@ -51,23 +51,23 @@ contract('ShitCoinGrabBag', function(accounts) {
     });
 
     it("abort if call causes overflow", async function() {
-      await AbortHelper.tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, Math.pow(2,256), "0x0", {from: owner}), "revert");
+      await AbortHelper.tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, Math.pow(2,256), {from: owner}), "revert");
     });
 
     it("abort with an error if negative number", async function() {
-      await AbortHelper.tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, -1, "0x0", {from: nonOwner}), "revert");
+      await AbortHelper.tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, -1, {from: nonOwner}), "revert");
     });
 
     it("abort with an error if called by a non-owner", async function() {
-      await AbortHelper.tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, 1, "0x0", {from: nonOwner}), "revert");
+      await AbortHelper.tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, 1, {from: nonOwner}), "revert");
     });
 
     it("abort with an error if called by a non-owner", async function() {
-      await AbortHelper.tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, 1, "0x0", {from: nonOwner}), "revert");
+      await AbortHelper.tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, 1, {from: nonOwner}), "revert");
     });
 
     it("abort with an error if called with empty address", async function() {
-      await AbortHelper.tryCatch(shitCoinGrabBagInstance.registerToken("0x0", 1, "0x0", {from: owner}), "revert");
+      await AbortHelper.tryCatch(shitCoinGrabBagInstance.registerToken("0x0", 1,  {from: owner}), "revert");
     });
   });
 });

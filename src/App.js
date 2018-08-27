@@ -19,21 +19,17 @@ class App extends Component {
       web3: null,
       erc20SendAddress: '0x0139f72d20b29fa0dca007192c9834496d7770a8',
       erc20SendAmount: 1,
-      shitCoinOwner: '0xfb577a7a1aba359ee87186c4081eafff73befcf349a031f6132cfe3405aefb9f' // TODO can't have this on frontend- move to a backend service
+      shitCoinOwner: '0xfb577a7a1aba359ee87186c4081eafff73befcf349a031f6132cfe3405aefb9f', // TODO can't have this on frontend- move to a backend service,
+      tokenWonByUser: null
     }
   }
 
   componentWillMount() {
-    // Get network provider and web3 instance.
-    // See utils/getWeb3 for more info.
-
     getWeb3
     .then(results => {
       this.setState({
         web3: results.web3,
       })
-
-      // Instantiate contract once web3 provided.
       this.instantiateContract()
     })
     .catch((e) => {
@@ -58,25 +54,29 @@ class App extends Component {
   }
 
   refreshAvailableTokens() {
-    this.getAvailableTokens()
-    .then((erc20Contracts) => {
+    this.getUserWonToken()
+    .then((tokenWonByUser) => {
+      this.setState({tokenWonByUser: tokenWonByUser})
+      return this.getGrabBagTokensHas()
+    })
+    .then((erc20Contracts) => { // Tokens registered as transferred to shit coin contract
       this.setState({erc20Contracts: erc20Contracts});
       return this.initTokenContracts(Object.keys(erc20Contracts));
     })
-    .then((erc20Contracts) => {
+    .then((erc20Contracts) => { // Initializes these erc20 contracts so we can make calls
       this.setState({erc20Contracts: erc20Contracts});
       return this.callContractMethod(Object.keys(erc20Contracts), 'name');
     })
-    .then((names) => {
+    .then((names) => { // Populate name of the tokens
       this.populateState(names, 'name');
       return this.callContractMethod(Object.keys(this.state.erc20Contracts), 'balanceOf', this.state.shitCoinGrabBagInstance.address);
-    }).then((balances) => {
+    }).then((balances) => { // Get balances for shit coin contract
       balances.forEach((balance) => {
         balance.balanceOf = new BigNumber(balance.balanceOf); // Convert from string
       });
       this.populateState(balances, 'balanceOf');
       return this.callContractMethod(Object.keys(this.state.erc20Contracts), 'decimals');
-    }).then((decimals) => {
+    }).then((decimals) => { // Convert balances into human readable
       this.populateState(decimals, 'decimals');
       const erc20Contracts = this.state.erc20Contracts;
       Object.keys(erc20Contracts).forEach((addresses) => {
@@ -99,39 +99,41 @@ class App extends Component {
     .then((amountToSend) => {
       return token.methods.transfer(this.state.shitCoinGrabBagInstance.address, amountToSend).send({ from: this.state.account})
     }).then((result) => {
-      // return self.state.shitCoinGrabBagInstance.registerToken(
-      //   self.state.erc20SendAddress,
-      //   self.state.erc20SendAmount,
-      //   self.state.account).send({from: self.state.account });
+        // return self.state.shitCoinGrabBagInstance.coinDrawing(
+        // self.state.erc20SendAddress,
+        // self.state.erc20SendAmount, // Leave out decimals when we store amount in our contract
+        // self.state.account,
+        // {from: self.state.account })
         return self.state.shitCoinGrabBagInstance.registerToken(
+          self.state.erc20SendAddress,
+          self.state.erc20SendAmount, // Leave out decimals when we store amount in our contract
+          {from: self.state.account });
+    }).then(() => {
+      return self.state.shitCoinGrabBagInstance.transferAToken(
         self.state.erc20SendAddress,
-        self.state.erc20SendAmount, // Leave out decimals
-        self.state.account, {from: self.state.account })
+        {from: self.state.account });
     }).then(() => {
       self.refreshAvailableTokens();
     });
-    
   }
 
-  handleAddressChange(evt) {
-    this.setState({ erc20SendAddress: evt.target.value });
+  getUserWonToken() {
+    return this.state.shitCoinGrabBagInstance.getContractAddressOfTransferredToken.call(this.state.account);
   }
 
-  handleAmountChange(evt) {
-    this.setState({ erc20SendAmount: evt.target.value });
-  }
-
-  getAvailableTokens() {
+  getGrabBagTokensHas() {
     return new Promise((resolve, reject) => {
       this.state.shitCoinGrabBagInstance.getTokenContracts.call().then((results) => {
         const resultsObj = {};
         results.forEach((contractAddress) => {
-          resultsObj[contractAddress] = {balance: new BigNumber(0)};
+          if (this.state.web3.utils.isAddress(contractAddress)) {
+            resultsObj[contractAddress] = {balance: new BigNumber(0)};
+          }
         })
         resolve(resultsObj);
       });
     });
-    //   let results = {};
+    //   let results = {}; dummy data for test on main net
     //   results['0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'] = {balance: new BigNumber(0)};
     //   results['0xb3104b4b9da82025e8b9f8fb28b3553ce2f67069'] = {balance: new BigNumber(0)};
     //   results['0xd850942ef8811f2a866692a623011bde52a462c1'] = {balance: new BigNumber(0)};
@@ -151,7 +153,7 @@ class App extends Component {
     });
   }
 
-  populateState(results, methodName) {
+  populateState(results, methodName) { // Generic update to state
     const erc20Contracts = this.state.erc20Contracts;
     results.forEach((result) => {
       erc20Contracts[result.address][methodName] = result[methodName];
@@ -159,7 +161,7 @@ class App extends Component {
     this.setState({erc20Contracts: erc20Contracts});
 }
 
-  callContractMethod(tokenContractAddresses, method, callArgs) {
+  callContractMethod(tokenContractAddresses, method, callArgs) { // Calls method on all contracts
     const promises = [];
     const erc20Contracts = this.state.erc20Contracts;
     tokenContractAddresses.forEach((tokenContract) => {
@@ -183,6 +185,31 @@ class App extends Component {
     return Promise.all(promises);
   }
 
+  handleAddressChange(evt) {
+    this.setState({ erc20SendAddress: evt.target.value });
+  }
+
+  handleAmountChange(evt) {
+    this.setState({ erc20SendAmount: evt.target.value });
+  }
+
+  emptyBag() {
+    if (this.state.erc20Contracts.length === 0) {
+      <div id="emptyBag" >Bag is empty!</div>
+    } else {
+      return '';
+    }
+  }
+
+  winnerWinnerChickenDinner() {
+    if (this.state.tokenWonByUser) {
+      return <div><h3>CONGRATS on your shit coin:</h3>
+        <div>{<a href="`https://etherscan.io/address/${this.state.tokenWonByUser}`">{this.state.tokenWonByUser}</a>}</div></div>
+    } else {
+      return '';
+    }
+  }
+
   render() {
     return (
       <div className="App">
@@ -192,11 +219,12 @@ class App extends Component {
         <main className="container">
           <div className="pure-g">
             <div className="pure-u-1-3">
+            {this.winnerWinnerChickenDinner()}
               <img src="images/PooBag.png"/>
             </div>
             <div className="pure-u-2-3">
               <h3>Erc20 Bag Contents</h3>
-              {Object.keys(this.state.erc20Contracts).length == 0 && <div id="emptyBag" >Bag is empty!</div> }
+              {this.emptyBag()}
               <table className="pure-table">
                 <thead>
                   <tr>

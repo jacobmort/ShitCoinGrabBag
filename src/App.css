@@ -41,3 +41,7 @@ code {
 .pure-table img {
   width: 25px;
 }
+
+input { 
+  width: 100%;
+}
