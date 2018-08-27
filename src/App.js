@@ -227,7 +227,7 @@ class App extends Component {
 
   winnerWinnerChickenDinner() {
     if (this.state.tokenWonByUser) {
-      return <div><h3>CONGRATS on your shit coin you can find it here:</h3>
+      return <div><h3>CONGRATS on your shit coin it has been transferred to your address on</h3>
         <div>{<a href="`https://etherscan.io/address/${this.state.tokenWonByUser}`">{this.state.tokenWonByUser}</a>}</div></div>
     } else {
       return '';
@@ -240,7 +240,7 @@ class App extends Component {
         <div className="pure-u-1-1 title">
           <h1>Shit Coin Grab Bag</h1>
           <div>
-          When life gives you lemon tokens use this to squeeze them into different lemons.
+          When life gives you lemon tokens use this to squeeze them into...other lemons.
         </div>
         <div>
           Send whole token amounts, assumes erc20 decimals 18
@@ -255,27 +255,30 @@ class App extends Component {
             {this.winnerWinnerChickenDinner()}
               <img src="images/PooBag.png"/>
             </div>
-            <div className="pure-u-2-3">
-              <h3>Erc20 Bag Contents</h3>
+            <div className="contents pure-u-2-3">
               {this.emptyBag()}
               <table className="pure-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Amount</th>
-                    <th>Address</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><button onClick={this.registerToken.bind(this)}>Exchange</button></td>                    
+                <tr>
+                    <td><button onClick={this.registerToken.bind(this)}>Exchange My Lemon</button></td>                    
                     <td>
-                      <input type="text" placeholder="Whole tokens" value={this.state.erc20SendAmount} onChange={this.handleAmountChange.bind(this)}/>
+                      <input type="text" placeholder="Whole token amount" value={this.state.erc20SendAmount} onChange={this.handleAmountChange.bind(this)}/>
                     </td>
                     <td>
                       <input type="text" placeholder="Erc20 Address" value={this.state.erc20SendAddress} onChange={this.handleAddressChange.bind(this)}/>
                     </td>
                   </tr>
+              </table>
+              <h3>Current Bag Contents</h3>
+              <i>one of these can be yours!</i>
+              <table className="pure-table">
+                <thead>
+                  <tr>
+                    <th>Name of Token</th>
+                    <th># of Tokens</th>
+                    <th>Address of Erc20 Contract</th>
+                  </tr>
+                </thead>
+                <tbody>
                 {Object.keys(this.state.erc20Contracts).map((address, i) => {
                   return( 
                   <tr key={i} className={i % 2 !== 0 ? 'pure-table-odd' : ''}>

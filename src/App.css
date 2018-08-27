@@ -34,7 +34,7 @@ code {
   border-color: #0c1a2b;
 }
 
-.title {
+.title, .content h3 {
   text-align: center;
 }
 
