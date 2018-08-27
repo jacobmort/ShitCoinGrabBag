@@ -81,69 +81,56 @@ class App extends Component {
     this.getUserWonToken()
     .then((tokenWonByUser) => {
       this.setState({tokenWonByUser: tokenWonByUser})
-      return this.getGrabBagTokensHas()
+      return this.getGrabBagTokensHas();
     })
     .then((erc20Contracts) => { // Tokens registered as transferred to shit coin contract
-      this.setState({erc20Contracts: erc20Contracts});
-      return this.initTokenContracts(this.state.erc20Contracts);
+      return this.getInfoForTokens(Object.keys(erc20Contracts), erc20Contracts, this.state.shitCoinGrabBagInstance.address);
     })
-    .then((erc20Contracts) => { // Initializes these erc20 contracts so we can make calls
-      this.setState({erc20Contracts: erc20Contracts});
-      return this.callContractMethod(this.state.erc20Contracts, 'name');
+    .then((erc20Contracts) => {
+      if (this.state.web3.utils.isAddress(this.state.erc20UserSendAddress)) {
+        return this.getInfoForTokens([this.state.erc20UserSendAddress],  erc20Contracts, this.state.account);
+      }
     })
-    .then((names) => { // Populate name of the tokens
-      this.populateErc20Contracts(names, 'name', this.state.erc20Contracts);
-      return this.callContractMethod(this.state.erc20Contracts, 'balanceOf', this.state.shitCoinGrabBagInstance.address);
-    }).then((balances) => { // Get balances for shit coin contract
-      balances.forEach((balance) => {
-        balance.balanceOfBag = new BigNumber(balance.balanceOf); // Convert from string
-      });
-      this.populateErc20Contracts(balances, 'balanceOfBag', this.state.erc20Contracts);
-      return this.callContractMethod(this.state.erc20Contracts, 'decimals');
-    }).then((decimals) => { // Convert balances into human readable
-      this.populateErc20Contracts(decimals, 'decimals', this.state.erc20Contracts);
-      const erc20Contracts = this.state.erc20Contracts;
-      Object.keys(erc20Contracts).forEach((addresses) => {
-        const divisor = new BigNumber(10).pow(erc20Contracts[addresses].decimals);
-        erc20Contracts[addresses].balanceOfBag = erc20Contracts[addresses].balanceOfBag.div(divisor)
-      })
-      this.setState({erc20Contracts: erc20Contracts});
-    }).catch((err) => {
+    .catch((err) => {
       console.log(err);
     });
   }
 
-  getInfoForTokens(addresses, erc20Contracts) {
+  getInfoForTokens(addresses, erc20Contracts, forAccount) {
+    let balanceKey;
+    if (forAccount === this.state.shitCoinGrabBagInstance.address) {
+      balanceKey = 'balanceOfBag';
+    } else {
+      balanceKey = 'balanceOfUser';
+    }
     addresses.forEach((address) => {
       if (!(address in erc20Contracts)) {
         erc20Contracts[address] = {};
       }
     });
-    new Promise((resolve, reject) => {
-      this.initTokenContracts(this.state.erc20Contracts)
-      .then((erc20Contracts) => {
-        this.setState({erc20Contracts: erc20Contracts});
-        return this.callContractMethod(this.state.erc20Contracts, 'name');
+    return new Promise((resolve, reject) => {
+      this.initTokenContracts(erc20Contracts)
+      .then((populatedContracts) => {
+        return this.callContractMethod(populatedContracts, 'name');
       }).then((names) => {
-        this.populateErc20Contracts(names, 'name', this.state.erc20Contracts);
-        return this.callContractMethod(this.state.erc20Contracts, 'balanceOf', this.state.account);
+        erc20Contracts = this.populateErc20Contracts(names, 'name', erc20Contracts);
+        return this.callContractMethod(erc20Contracts, 'balanceOf', forAccount);
       }).then((balances) => { // Get balances for shit coin contract
         balances.forEach((balance) => {
-          balance.balanceOfUser = new BigNumber(balance.balanceOf); // Convert from string
+          balance[balanceKey] = new BigNumber(balance.balanceOf); // Convert from string
         });
-        this.populateErc20Contracts(balances, 'balanceOfUser', this.state.erc20Contracts);
-        return this.callContractMethod(this.state.erc20Contracts, 'decimals');
+        erc20Contracts = this.populateErc20Contracts(balances, balanceKey, erc20Contracts);
+        return this.callContractMethod(erc20Contracts, 'decimals');
       }).then((decimals) => { // Convert balances into human readable
-        this.populateErc20Contracts(decimals, 'decimals', this.state.erc20Contracts);
-        const erc20Contracts = this.state.erc20Contracts;
+        erc20Contracts = this.populateErc20Contracts(decimals, 'decimals', erc20Contracts);
         Object.keys(erc20Contracts).forEach((addresses) => {
           const divisor = new BigNumber(10).pow(erc20Contracts[addresses].decimals);
-          erc20Contracts[addresses].balanceOfUser = erc20Contracts[addresses].balanceOfUser.div(divisor)
+          erc20Contracts[addresses][balanceKey] = erc20Contracts[addresses][balanceKey].div(divisor)
         });
         this.setState({erc20Contracts: erc20Contracts});
         resolve(erc20Contracts);
       }).catch((err) => {
-        console.log(err);
+        reject(err);
       });
    });
   }
@@ -214,11 +201,11 @@ class App extends Component {
     });
   }
 
-  populateErc20Contracts(results, methodName, erc20Contracts) { // Generic update to erc20Contracts
+  populateErc20Contracts(results, methodName, erc20Contracts) { // Update erc20Contracts with retrieved results
     results.forEach((result) => {
       erc20Contracts[result.address][methodName] = result[methodName];
     }, this);
-    this.setState({erc20Contracts: erc20Contracts});  
+    return erc20Contracts;
   }
 
   callContractMethod(erc20Contracts, method, callArgs) { // Calls method on all contracts
@@ -247,7 +234,7 @@ class App extends Component {
   handleAddressChange(evt) {
     this.setState({ erc20UserSendAddress: evt.target.value });
     if (this.state.web3.utils.isAddress(evt.target.value)) {
-      this.getInfoForTokens([evt.target.value], this.state.erc20Contracts);
+      this.getInfoForTokens([evt.target.value], this.state.erc20Contracts, this.state.account);
     }
   }
 
@@ -289,6 +276,14 @@ class App extends Component {
     return <input type="text" name="balance" className="pure-input-1-2" placeholder="Your balance for address" value={value.toNumber()} readOnly />;
   }
 
+  userTokenNameElement() {
+    let name = 'Tokens';
+    if (this.state.erc20UserSendAddress in this.state.erc20Contracts) {
+      name = this.state.erc20Contracts[this.state.erc20UserSendAddress].name;
+    }
+    return <label htmlFor="tokens">Amount of {name}</label>
+  }
+
   render() {
     return (
       <div className="App">
@@ -320,11 +315,11 @@ class App extends Component {
                     </div>
                 </div>
                 <div className="pure-g">
-                  <div className="pure-u-1-3">  
-                    <label htmlFor="tokens">Amount of Tokens</label>
+                  <div className="pure-u-2-3">  
+                    { this.userTokenNameElement() }
                     <input type="text" name="tokens" className="pure-input-1-2" placeholder="Whole tokens" value={this.state.erc20UserSendAmount} onChange={this.handleAmountChange.bind(this)}/>
                   </div>
-                  <div className="pure-u-2-3">
+                  <div className="pure-u-1-3">
                     <label htmlFor="balance">of your balance</label>
                     { this.userBalanceElement() }
                   </div>
