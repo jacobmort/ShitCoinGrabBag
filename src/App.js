@@ -20,7 +20,9 @@ class App extends Component {
       erc20UserSendAddress: '0x0139f72d20b29fa0dca007192c9834496d7770a8', // Default value for erc20 user is depositing from
       erc20UserSendAmount: 1, // Default # of tokens to send
       erc20UserAccountBalance: '',
+      account: '',
       tokenWonByUser: null,
+      buttonText: 'Exchange My Lemon',
       watchEvents: []
     }
   }
@@ -84,6 +86,9 @@ class App extends Component {
       return this.getGrabBagTokensHas();
     })
     .then((erc20Contracts) => { // Tokens registered as transferred to shit coin contract
+      if (Object.keys(erc20Contracts).length === 0){
+        this.setState({buttonText: 'Donate tokens'})
+      }
       return this.getInfoForTokens(Object.keys(erc20Contracts), erc20Contracts, this.state.shitCoinGrabBagInstance.address);
     })
     .then((erc20Contracts) => {
@@ -231,6 +236,16 @@ class App extends Component {
     return Promise.all(promises);
   }
 
+  getContractsBagHasBalance() {
+    let contracts = [];
+    Object.keys(this.state.erc20Contracts).forEach((address) => {
+      if ('balanceOfBag' in this.state.erc20Contracts[address]) {
+        contracts.push(this.state.erc20Contracts[address]);
+      }
+    });
+    return contracts;
+  }
+
   handleAddressChange(evt) {
     this.setState({ erc20UserSendAddress: evt.target.value });
     if (this.state.web3.utils.isAddress(evt.target.value)) {
@@ -242,19 +257,32 @@ class App extends Component {
     this.setState({ erc20UserSendAmount: evt.target.value });
   }
 
-  emptyBagElement() {
-    if (this.state.erc20Contracts.length === 0) {
-      <div id="emptyBag" >Bag is empty!</div>
+  erc20ImageError(evt) {
+    evt.target.src =  '';
+  }
+
+  userBalance() {
+    if (this.state.erc20UserSendAddress in this.state.erc20Contracts &&
+        'balanceOfUser' in this.state.erc20Contracts[this.state.erc20UserSendAddress]) {
+      return this.state.erc20Contracts[this.state.erc20UserSendAddress].balanceOfUser;
     } else {
-      return '';
+      return new BigNumber(0);
     }
   }
 
-  currentAccountElement() {
-    if (this.state.account ) {
-      return <i>Your Current account: <a href="{`https://etherscan.io/address/${this.state.account}`}">{ this.state.account }</a></i>
+  userTokenName() {
+    if (this.state.erc20UserSendAddress in this.state.erc20Contracts) {
+      return this.state.erc20Contracts[this.state.erc20UserSendAddress].name;
     } else {
-      
+      return 'tokens';
+    }
+  }
+
+  emptyBagRow() {
+    if (this.getContractsBagHasBalance().length === 0) {
+      return <tr>
+        <td colSpan="3">BAG IS EMPTY!  Some generous person needs to get this party started by donating</td>
+      </tr>
     }
   }
 
@@ -265,23 +293,6 @@ class App extends Component {
     } else {
       return '';
     }
-  }
-
-  userBalanceElement() {
-    let value = new BigNumber(0);
-    if (this.state.erc20UserSendAddress in this.state.erc20Contracts &&
-        'balanceOfUser' in this.state.erc20Contracts[this.state.erc20UserSendAddress]) {
-      value = this.state.erc20Contracts[this.state.erc20UserSendAddress].balanceOfUser;
-    }
-    return <input type="text" name="balance" className="pure-input-1-2" placeholder="Your balance for address" value={value.toNumber()} readOnly />;
-  }
-
-  userTokenNameElement() {
-    let name = 'Tokens';
-    if (this.state.erc20UserSendAddress in this.state.erc20Contracts) {
-      name = this.state.erc20Contracts[this.state.erc20UserSendAddress].name;
-    }
-    return <label htmlFor="tokens">Amount of {name}</label>
   }
 
   render() {
@@ -296,7 +307,7 @@ class App extends Component {
           Send whole token amounts, assumes erc20 decimals 18
         </div>
         <div>
-          {this.currentAccountElement()}
+          
         </div>
         </div>
         <main className="container">
@@ -306,28 +317,31 @@ class App extends Component {
               <img src="images/PooBag.png"/>
             </div>
             <div className="contents pure-u-2-3">
-              {this.emptyBagElement()}
-              <form className="pure-form">
-                <div className="pure-g">
-                    <div className="pure-u-1">
-                      <label htmlFor="token-address">Erc20 address on my token</label>
-                      <input type="text" name="token-address" className="pure-input-1-1" placeholder="Erc20 Address" value={this.state.erc20UserSendAddress} onChange={this.handleAddressChange.bind(this)}/>
-                    </div>
+              <form className="pure-form pure-form-aligned">
+              <fieldset>
+                <div className="pure-control-group">
+                    <label htmlFor="token-address">Erc20 address</label>
+                    <input className="pure-input-1-2" type="text" name="token-address" placeholder="Erc20 Address" value={this.state.erc20UserSendAddress} onChange={this.handleAddressChange.bind(this)}/>
                 </div>
-                <div className="pure-g">
-                  <div className="pure-u-2-3">  
-                    { this.userTokenNameElement() }
-                    <input type="text" name="tokens" className="pure-input-1-2" placeholder="Whole tokens" value={this.state.erc20UserSendAmount} onChange={this.handleAmountChange.bind(this)}/>
-                  </div>
-                  <div className="pure-u-1-3">
-                    <label htmlFor="balance">of your balance</label>
-                    { this.userBalanceElement() }
-                  </div>
+                <div className="pure-control-group">
+                  <label htmlFor="tokens">Amount of {this.userTokenName()}</label>
+                  <input className="pure-input-1-2" type="text" name="tokens" placeholder="Whole tokens" value={this.state.erc20UserSendAmount} onChange={this.handleAmountChange.bind(this)}/>
                 </div>
-                <button type="submit" onClick={this.registerToken.bind(this)} className="pure-button pure-button-primary">Exchange My Lemon</button>
+                <div className="pure-control-group">
+                  <label htmlFor="balance">Your balance</label>
+                  <input className="pure-input-1-2" type="text" name="balance" placeholder="Your balance for address" value={this.userBalance()} readOnly />
+                </div>
+                <div className="pure-control-group">
+                  <label htmlFor="account"><a href={`https://etherscan.io/address/${this.state.account}`}>Of your account</a></label>
+                  <input className="pure-input-1-2" type="text" name="account" placeholder="Erc20 Address" value={this.state.account} readOnly />
+                </div>
+                <div className="pure-controls">
+                  <button type="submit" disabled={this.getContractsBagHasBalance().length == 0} onClick={this.registerToken.bind(this)} className="pure-button pure-button-primary">{this.state.buttonText}</button>
+                </div>
+                </fieldset>
               </form>
               <h3>Current Bag Contents</h3>
-              <i>one of these can be yours!</i>
+              <i>one of these can be yours!</i>;
               <table className="pure-table">
                 <thead>
                   <tr>
@@ -337,11 +351,12 @@ class App extends Component {
                   </tr>
                 </thead>
                 <tbody>
-                {Object.keys(this.state.erc20Contracts).map((address, i) => {
+                {this.emptyBagRow()}
+                {this.getContractsBagHasBalance().map((address, i) => {
                   return( 
                   <tr key={i} className={i % 2 !== 0 ? 'pure-table-odd' : ''}>
                     <td>
-                      <img src={`https://raw.githubusercontent.com/trustwallet/tokens/master/images/${address}.png`} />
+                      <img src={`https://raw.githubusercontent.com/trustwallet/tokens/master/images/${address}.png`} onError={this.erc20ImageError.bind(this)}/>
                       { this.state.erc20Contracts[address].name }
                     </td>
                     <td>{ this.state.erc20Contracts[address].balanceOfBag.toNumber() }</td>
