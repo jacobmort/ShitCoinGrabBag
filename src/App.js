@@ -134,7 +134,7 @@ class App extends Component {
           {from: self.state.account });
     }).then(() => {
       return self.state.shitCoinGrabBagInstance.transferAToken(
-        self.state.erc20SendAddress,
+        self.state.account,
         {from: self.state.account });
     }).then(() => {
       self.refreshAvailableTokens();
