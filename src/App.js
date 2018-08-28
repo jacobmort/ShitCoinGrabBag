@@ -86,10 +86,6 @@ class App extends Component {
       events.push(this.state.shitCoinGrabBagInstance.ReceivedToken());
       events.forEach((event) => {
         event.watch((err, result) => {
-          // This can happen after other call to refreshAvailableTokens completes
-          if (result.event === "TransferToken") { 
-            this.refreshAvailableTokens();
-          }
           console.log(result);
         });
       });
@@ -100,20 +96,25 @@ class App extends Component {
   refreshAvailableTokens() {
     this.getUserWonToken()
     .then((tokenWonByUser) => {
-      if (tokenWonByUser) {
-        this.getInfoForTokens([tokenWonByUser], this.state.erc20Contracts, this.state.account)
-        .then(() => {
-          this.setState({tokenWonByUser: tokenWonByUser});
-        })
-      }
-      return this.getGrabBagTokensHas();
+      return new Promise((resolve, reject) => {
+        if (tokenWonByUser) {
+          this.getInfoForTokens([tokenWonByUser], this.state.erc20Contracts, this.state.account)
+          .then(() => {
+            this.setState({tokenWonByUser: tokenWonByUser});
+            resolve();
+          })
+        } else {
+          resolve();
+        }
+      });
     })
+    .then(() => this.getGrabBagTokensHas())
     .then((erc20Contracts) => { // Tokens registered as transferred to shit coin contract
-      return this.getInfoForTokens(Object.keys(erc20Contracts), erc20Contracts, this.state.shitCoinGrabBagInstance.address);
+      return this.getInfoForTokens(Object.keys(erc20Contracts), this.state.erc20Contracts, this.state.shitCoinGrabBagInstance.address);
     })
     .then((erc20Contracts) => {
       if (this.state.web3.utils.isAddress(this.state.erc20UserSendAddress)) {
-        return this.getInfoForTokens([this.state.erc20UserSendAddress],  erc20Contracts, this.state.account);
+        return this.getInfoForTokens([this.state.erc20UserSendAddress],  this.state.erc20Contracts, this.state.account);
       }
     })
     .catch((err) => {
@@ -283,7 +284,7 @@ class App extends Component {
   getContractsBagHasBalance() {
     let contracts = [];
     Object.keys(this.state.erc20Contracts).forEach((address) => {
-      if ('balanceOfBag' in this.state.erc20Contracts[address]) {
+      if ('balanceOfBag' in this.state.erc20Contracts[address] && this.state.erc20Contracts[address].balanceOfBag > 0) {
         contracts.push(address);
       }
     });
