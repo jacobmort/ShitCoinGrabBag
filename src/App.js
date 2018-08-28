@@ -89,7 +89,12 @@ class App extends Component {
   refreshAvailableTokens() {
     this.getUserWonToken()
     .then((tokenWonByUser) => {
-      this.setState({tokenWonByUser: tokenWonByUser})
+      if (tokenWonByUser) {
+        this.getInfoForTokens([tokenWonByUser], this.state.erc20Contracts, this.state.account)
+        .then(() => {
+          this.setState({tokenWonByUser: tokenWonByUser});
+        })
+      }
       return this.getGrabBagTokensHas();
     })
     .then((erc20Contracts) => { // Tokens registered as transferred to shit coin contract
@@ -149,7 +154,8 @@ class App extends Component {
    });
   }
 
-  registerToken() {
+  donateOrRunDrawing(e) {
+    e.preventDefault();
     const token = new this.state.web3.eth.Contract(erc20Abi, this.state.erc20UserSendAddress);
     token.methods.decimals().call()
     .then((decimals) => {
@@ -157,12 +163,19 @@ class App extends Component {
     })
     .then((amountToSend) => {
       return token.methods.transfer(this.state.shitCoinGrabBagInstance.address, amountToSend).send({ from: this.state.account})
-    }).then((result) => {
+    }).then(() => {
+      if (this.getContractsBagHasBalance() === 0) {
+        return this.state.shitCoinGrabBagInstance.registerToken(
+          this.state.erc20UserSendAddress,
+          this.state.erc20UserSendAmount, // Leave out decimals when we store amount in our contract
+          {from: this.state.account })
+      } else {
         return this.state.shitCoinGrabBagInstance.coinDrawing(
         this.state.erc20UserSendAddress,
         this.state.erc20UserSendAmount, // Leave out decimals when we store amount in our contract
         this.state.account,
         {from: this.state.account })
+      }
     }).then(() => {
       this.refreshAvailableTokens();
     });
@@ -301,8 +314,8 @@ class App extends Component {
 
   winnerWinnerChickenDinnerElement() {
     if (this.state.tokenWonByUser) {
-      return <div><h3>CONGRATS on your shit coin it has been transferred to your address on</h3>
-        <div>{<a href="`https://etherscan.io/address/${this.state.tokenWonByUser}`">{this.state.tokenWonByUser}</a>}</div></div>
+      return <div><h3>CONGRATS you won {this.state.erc20Contracts[this.state.tokenWonByUser].name}</h3>
+        <div>new balance:{this.state.erc20Contracts[this.state.tokenWonByUser].balanceOfUser.toNumber()} at {<a href="`https://etherscan.io/address/${this.state.tokenWonByUser}`">{this.state.tokenWonByUser}</a>}</div></div>
     } else {
       return '';
     }
@@ -353,7 +366,7 @@ class App extends Component {
                   <input className="pure-input-1-2" type="text" name="account" placeholder="Erc20 Address" value={this.state.account} readOnly />
                 </div>
                 <div className="pure-controls">
-                  <button type="submit" disabled={this.getContractsBagHasBalance().length == 0} onClick={this.registerToken.bind(this)} className="pure-button pure-button-primary">{this.state.buttonText}</button>
+                  <button type="submit" onClick={this.donateOrRunDrawing.bind(this)} className="pure-button pure-button-primary">{this.state.buttonText}</button>
                 </div>
                 </fieldset>
               </form>
