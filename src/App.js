@@ -2,7 +2,8 @@ import React, { Component } from 'react'
 import getWeb3 from './utils/getWeb3'
 import BigNumber from 'bignumber.js';
 
-import ShitCoinGrabBag from '../build/contracts/ShitCoinGrabBag.json'
+import ShitCoinGrabBag from '../build/contracts/ShitCoinGrabBag.json';
+import DummyErc20 from '../build/contracts/DummyErc20.json';
 import erc20Abi from 'human-standard-token-abi';
 
 import './css/oswald.css'
@@ -15,16 +16,18 @@ class App extends Component {
     super(props)
 
     this.state = {
-      erc20Contracts: {},
       web3: null,
-      erc20UserSendAddress: '0x6288a162851e2613d44c277f29cf176061ab3dc3', // Default value for erc20 user is depositing from
-      erc20UserSendAmount: 1, // Default # of tokens to send
-      erc20UserAccountBalance: '',
-      account: '',
-      tokenWonByUser: null,
-      watchEvents: [],
-      addressError: '',
-      web3SendInProgressMessage: ''
+      account: '',              // Metamask user account
+      erc20Contracts: {},       // Store info on contracts for Bag and this.state.account
+      erc20UserSendAddress: '', // Default value for erc20 user is depositing from
+      erc20UserSendAmount: 1,   // Default # of tokens to send
+      erc20UserAccountBalance: '',  // account balance for `erc20UserSendAddress`
+      tokenWonByUser: null,     // Contract of erc20 token Bag transferred to user
+      watchEvents: [],          // Stores all events of Bag to watch
+      addressError: '',         // Validation message
+      web3SendInProgressMessage: '', // Information on Metamask prompted transactions
+      shitCoinGrabBagInstance: null, // Stores Bag contract
+      dummyErc20: null          // Stores one of the dummy erc20s setup for testing
     }
   }
 
@@ -48,8 +51,9 @@ class App extends Component {
   instantiateContract() {
     const contract = require('truffle-contract');
     const shitCoinGrabBag = contract(ShitCoinGrabBag);
+    const dummyErc20 = contract(DummyErc20);
     shitCoinGrabBag.setProvider(this.state.web3.currentProvider);
-    // Get accounts.
+    dummyErc20.setProvider(this.state.web3.currentProvider);
     this.state.web3.eth.getAccounts()
     .then((accounts) => {
       if (accounts.length === 0) {
@@ -60,6 +64,9 @@ class App extends Component {
     })
     .then((instance) => {
       this.setState({shitCoinGrabBagInstance: instance});
+      return dummyErc20.deployed();
+    }).then((instance) => {
+      this.setState({dummyErc20Instance: instance, erc20UserSendAddress: instance.address});
       return this.watchContractEvents();
     }).then((events) => {
       this.setState({watchEvents: events});
@@ -79,7 +86,8 @@ class App extends Component {
       events.push(this.state.shitCoinGrabBagInstance.ReceivedToken());
       events.forEach((event) => {
         event.watch((err, result) => {
-          if (result.event === "TransferToken") {
+          // This can happen after other call to refreshAvailableTokens completes
+          if (result.event === "TransferToken") { 
             this.refreshAvailableTokens();
           }
           console.log(result);
@@ -113,6 +121,7 @@ class App extends Component {
     });
   }
 
+  // Populates all kind of info for the erc20
   getInfoForTokens(addresses, erc20Contracts, forAccount) {
     let balanceKey;
     if (forAccount === this.state.shitCoinGrabBagInstance.address) {
@@ -154,6 +163,7 @@ class App extends Component {
    });
   }
 
+  // Prompts metamask transactions
   donateOrRunDrawing(e) {
     e.preventDefault();
     const token = new this.state.web3.eth.Contract(erc20Abi, this.state.erc20UserSendAddress);
@@ -188,6 +198,7 @@ class App extends Component {
     });
   }
 
+  // Did user get any token from the bag?
   getUserWonToken() {
     return new Promise((resolve, reject) => {
       this.state.shitCoinGrabBagInstance.getContractAddressOfTransferredToken.call(this.state.account)
@@ -202,6 +213,7 @@ class App extends Component {
     })
   }
 
+  // What's in the bag?
   getGrabBagTokensHas() {
     return new Promise((resolve, reject) => {
       this.state.shitCoinGrabBagInstance.getTokenContracts.call().then((results) => {
@@ -235,14 +247,16 @@ class App extends Component {
     });
   }
 
-  populateErc20Contracts(results, methodName, erc20Contracts) { // Update erc20Contracts with retrieved results
+  // Update erc20Contracts with retrieved results
+  populateErc20Contracts(results, methodName, erc20Contracts) {
     results.forEach((result) => {
       erc20Contracts[result.address][methodName] = result[methodName];
     }, this);
     return erc20Contracts;
   }
 
-  callContractMethod(erc20Contracts, method, callArgs) { // Calls method on all contracts
+  // Calls method on all contracts
+  callContractMethod(erc20Contracts, method, callArgs) {
     const promises = [];
     Object.keys(erc20Contracts).forEach((tokenContract) => {
       promises.push(new Promise((resolve, reject) => {
@@ -264,7 +278,8 @@ class App extends Component {
     }, this);
     return Promise.all(promises);
   }
-
+  
+  // Which contracts in this.state.erc20Contracts does Bag have a balance on?
   getContractsBagHasBalance() {
     let contracts = [];
     Object.keys(this.state.erc20Contracts).forEach((address) => {
