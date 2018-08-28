@@ -23,7 +23,8 @@ class App extends Component {
       account: '',
       tokenWonByUser: null,
       watchEvents: [],
-      addressError: ''
+      addressError: '',
+      web3SendInProgressMessage: ''
     }
   }
 
@@ -158,14 +159,17 @@ class App extends Component {
       return Promise.resolve(this.state.erc20UserSendAmount * ( 10 ** decimals));
     })
     .then((amountToSend) => {
+      this.setState({web3SendInProgressMessage: 'Transfer ERC20 ownership to the Bag'});
       return token.methods.transfer(this.state.shitCoinGrabBagInstance.address, amountToSend).send({ from: this.state.account})
     }).then(() => {
       if (this.getContractsBagHasBalance().length === 0) {
+        this.setState({web3SendInProgressMessage: 'Let the bag know it about it (in future this will be backend service)'});
         return this.state.shitCoinGrabBagInstance.registerToken(
           this.state.erc20UserSendAddress,
           this.state.erc20UserSendAmount, // Leave out decimals when we store amount in our contract
           {from: this.state.account })
       } else {
+        this.setState({web3SendInProgressMessage: 'Pick a winner'});
         return this.state.shitCoinGrabBagInstance.coinDrawing(
         this.state.erc20UserSendAddress,
         this.state.erc20UserSendAmount, // Leave out decimals when we store amount in our contract
@@ -173,7 +177,11 @@ class App extends Component {
         {from: this.state.account })
       }
     }).then(() => {
+      this.setState({web3SendInProgressMessage: ''});
       this.refreshAvailableTokens();
+    }).catch((err) => {
+      this.setState({web3SendInProgressMessage: ''});
+      console.log(err);
     });
   }
 
@@ -311,7 +319,7 @@ class App extends Component {
   winnerWinnerChickenDinnerElement() {
     if (this.state.tokenWonByUser && this.state.erc20Contracts[this.state.tokenWonByUser]) {
       return <nav className="navbar pure-menu pure-menu-horizontal">
-        <div><h3><i>CONGRATS you won a </i><b>{this.state.erc20Contracts[this.state.tokenWonByUser].name}</b></h3>
+        <div><h3><i>CONGRATS are ownership of a </i><b>{this.state.erc20Contracts[this.state.tokenWonByUser].name}</b></h3>
         <div><i>your new balance: </i><b>
           {this.state.erc20Contracts[this.state.tokenWonByUser].balanceOfUser && this.state.erc20Contracts[this.state.tokenWonByUser].balanceOfUser.toNumber()}
           </b> <i>at</i>   {<a href="`https://etherscan.io/address/${this.state.tokenWonByUser}`">{this.state.tokenWonByUser}</a>}
@@ -333,6 +341,12 @@ class App extends Component {
     const buttonText = this.getContractsBagHasBalance() === 0 ? 'Donate tokens' : 'Exchange My Lemon';
     return (
       <div className="App">
+        { this.state.web3SendInProgressMessage && <div>
+            <div className="overlay"></div>
+            <div className="spinner"></div>
+            <h1 className="sending-message">{ this.state.web3SendInProgressMessage }</h1>
+          </div>
+        }
         {this.winnerWinnerChickenDinnerElement()}
         <div className="pure-u-1-1 title">
           <h1>Shit Coin Grab Bag</h1>
@@ -341,9 +355,6 @@ class App extends Component {
         </div>
         <div>
           Send whole token amounts, assumes erc20 decimals 18
-        </div>
-        <div>
-          
         </div>
         </div>
         <main className="container">
