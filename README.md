@@ -1,6 +1,7 @@
 # ShitCoinGrabBag
 You put a erc20 token in and you get a random erc20 out
-
++// Payable
++// Circuit breaker
 ## Installation
 
 1. Install Truffle globally.

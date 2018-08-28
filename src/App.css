@@ -45,3 +45,7 @@ code {
 input { 
   width: 100%;
 }
+
+.pure-form-message-inline {
+  color: red;
+}

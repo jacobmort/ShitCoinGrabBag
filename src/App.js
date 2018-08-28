@@ -23,7 +23,8 @@ class App extends Component {
       account: '',
       tokenWonByUser: null,
       buttonText: 'Exchange My Lemon',
-      watchEvents: []
+      watchEvents: [],
+      addressError: false
     }
   }
 
@@ -37,7 +38,7 @@ class App extends Component {
     })
     .catch((e) => {
       console.log(`Error finding web3:${e}`);
-    })
+    });
   }
 
   componentWillUnmount() {
@@ -51,6 +52,9 @@ class App extends Component {
     // Get accounts.
     this.state.web3.eth.getAccounts()
     .then((accounts) => {
+      if (accounts.length === 0) {
+        throw('no accounts');
+      }
       this.setState({account: accounts[0]});
       return shitCoinGrabBag.deployed();
     })
@@ -60,6 +64,9 @@ class App extends Component {
     }).then((events) => {
       this.setState({watchEvents: events});
       return this.refreshAvailableTokens();
+    }).catch((err) => {
+      console.log(err);
+      // TODO show dialog to login with MetaMask
     });
   }
 
@@ -134,8 +141,10 @@ class App extends Component {
         });
         this.setState({erc20Contracts: erc20Contracts});
         resolve(erc20Contracts);
-      }).catch((err) => {
-        reject(err);
+      }).catch((address) => {
+        delete erc20Contracts[address]; // This address failed call and is likely not an erc20 contract
+        console.log(`failed erc20 call ${address}`);
+        reject();
       });
    });
   }
@@ -219,7 +228,7 @@ class App extends Component {
       promises.push(new Promise((resolve, reject) => {
         const callback = (err, result) => {
           if (err) {
-            reject(err);
+            reject(tokenContract, err);
           } else {
             const returnObj = { address: tokenContract };
             returnObj[method] = result;
@@ -240,7 +249,7 @@ class App extends Component {
     let contracts = [];
     Object.keys(this.state.erc20Contracts).forEach((address) => {
       if ('balanceOfBag' in this.state.erc20Contracts[address]) {
-        contracts.push(this.state.erc20Contracts[address]);
+        contracts.push(address);
       }
     });
     return contracts;
@@ -249,7 +258,11 @@ class App extends Component {
   handleAddressChange(evt) {
     this.setState({ erc20UserSendAddress: evt.target.value });
     if (this.state.web3.utils.isAddress(evt.target.value)) {
-      this.getInfoForTokens([evt.target.value], this.state.erc20Contracts, this.state.account);
+      this.setState({addressError: false});
+      this.getInfoForTokens([evt.target.value], this.state.erc20Contracts, this.state.account)
+      .catch(() => this.setState({addressError: true}));
+    } else {
+      this.setState({addressError: true});
     }
   }
 
@@ -322,6 +335,10 @@ class App extends Component {
                 <div className="pure-control-group">
                     <label htmlFor="token-address">Erc20 address</label>
                     <input className="pure-input-1-2" type="text" name="token-address" placeholder="Erc20 Address" value={this.state.erc20UserSendAddress} onChange={this.handleAddressChange.bind(this)}/>
+                    { this.state.addressError ? 
+                      <span className="pure-form-message-inline">Is this a valid erc20 address?</span>
+                      : null
+                     }
                 </div>
                 <div className="pure-control-group">
                   <label htmlFor="tokens">Amount of {this.userTokenName()}</label>
@@ -341,7 +358,7 @@ class App extends Component {
                 </fieldset>
               </form>
               <h3>Current Bag Contents</h3>
-              <i>one of these can be yours!</i>;
+              <i>one of these can be yours!</i>
               <table className="pure-table">
                 <thead>
                   <tr>
