@@ -17,14 +17,13 @@ class App extends Component {
     this.state = {
       erc20Contracts: {},
       web3: null,
-      erc20UserSendAddress: '0x0139f72d20b29fa0dca007192c9834496d7770a8', // Default value for erc20 user is depositing from
+      erc20UserSendAddress: '0x6288a162851e2613d44c277f29cf176061ab3dc3', // Default value for erc20 user is depositing from
       erc20UserSendAmount: 1, // Default # of tokens to send
       erc20UserAccountBalance: '',
       account: '',
       tokenWonByUser: null,
-      buttonText: 'Exchange My Lemon',
       watchEvents: [],
-      addressError: false
+      addressError: ''
     }
   }
 
@@ -98,9 +97,6 @@ class App extends Component {
       return this.getGrabBagTokensHas();
     })
     .then((erc20Contracts) => { // Tokens registered as transferred to shit coin contract
-      if (Object.keys(erc20Contracts).length === 0){
-        this.setState({buttonText: 'Donate tokens'})
-      }
       return this.getInfoForTokens(Object.keys(erc20Contracts), erc20Contracts, this.state.shitCoinGrabBagInstance.address);
     })
     .then((erc20Contracts) => {
@@ -271,11 +267,11 @@ class App extends Component {
   handleAddressChange(evt) {
     this.setState({ erc20UserSendAddress: evt.target.value });
     if (this.state.web3.utils.isAddress(evt.target.value)) {
-      this.setState({addressError: false});
+      this.setState({addressError: ''});
       this.getInfoForTokens([evt.target.value], this.state.erc20Contracts, this.state.account)
-      .catch(() => this.setState({addressError: true}));
+      .catch(() => this.setState({addressError: 'Is this a valid ERC20 address?'}));
     } else {
-      this.setState({addressError: true});
+      this.setState({addressError: 'Is this a valid ERC20 address?'});
     }
   }
 
@@ -314,8 +310,10 @@ class App extends Component {
 
   winnerWinnerChickenDinnerElement() {
     if (this.state.tokenWonByUser) {
-      return <div><h3>CONGRATS you won {this.state.erc20Contracts[this.state.tokenWonByUser].name}</h3>
-        <div>new balance:{this.state.erc20Contracts[this.state.tokenWonByUser].balanceOfUser && this.state.erc20Contracts[this.state.tokenWonByUser].balanceOfUser.toNumber()} at {<a href="`https://etherscan.io/address/${this.state.tokenWonByUser}`">{this.state.tokenWonByUser}</a>}</div></div>
+      return <nav className="navbar pure-menu pure-menu-horizontal">
+        <div><h3><i>CONGRATS you won a </i><b>{this.state.erc20Contracts[this.state.tokenWonByUser].name}</b></h3>
+        <div><i>your new balance: </i><b>{this.state.erc20Contracts[this.state.tokenWonByUser].balanceOfUser && this.state.erc20Contracts[this.state.tokenWonByUser].balanceOfUser.toNumber()}</b> <i>at</i>   {<a href="`https://etherscan.io/address/${this.state.tokenWonByUser}`">{this.state.tokenWonByUser}</a>}</div></div>
+      </nav>
     } else {
       return '';
     }
@@ -323,9 +321,15 @@ class App extends Component {
 
   render() {
     const getContractsBagHasBalance = this.getContractsBagHasBalance();
-    const buttonDisabled = getContractsBagHasBalance.length === 1 && getContractsBagHasBalance[0] === this.state.erc20UserSendAddress;
+    const bagOnlyContainsSameTokenAsUserAddress = getContractsBagHasBalance.length === 1 && getContractsBagHasBalance[0] === this.state.erc20UserSendAddress;
+    const buttonDisabled = bagOnlyContainsSameTokenAsUserAddress;
+    if (bagOnlyContainsSameTokenAsUserAddress) {
+      this.state.addressError = 'Shit bag only contains these no point in exchanging';
+    }
+    const buttonText = this.getContractsBagHasBalance() === 0 ? 'Donate tokens' : 'Exchange My Lemon';
     return (
       <div className="App">
+        {this.winnerWinnerChickenDinnerElement()}
         <div className="pure-u-1-1 title">
           <h1>Shit Coin Grab Bag</h1>
           <div>
@@ -341,7 +345,6 @@ class App extends Component {
         <main className="container">
           <div className="pure-g">
             <div className="pure-u-1-3">
-            {this.winnerWinnerChickenDinnerElement()}
               <img src="images/PooBag.png"/>
             </div>
             <div className="contents pure-u-2-3">
@@ -350,10 +353,7 @@ class App extends Component {
                 <div className="pure-control-group">
                     <label htmlFor="token-address">Erc20 address</label>
                     <input className="pure-input-1-2" type="text" name="token-address" placeholder="Erc20 Address" value={this.state.erc20UserSendAddress} onChange={this.handleAddressChange.bind(this)}/>
-                    { this.state.addressError ? 
-                      <span className="pure-form-message-inline">Is this a valid erc20 address?</span>
-                      : null
-                     }
+                      <span className="pure-form-message-inline">{this.state.addressError}</span>
                 </div>
                 <div className="pure-control-group">
                   <label htmlFor="tokens">Amount of {this.userTokenName()}</label>
@@ -368,7 +368,7 @@ class App extends Component {
                   <input className="pure-input-1-2" type="text" name="account" placeholder="Erc20 Address" value={this.state.account} readOnly />
                 </div>
                 <div className="pure-controls">
-                  <button type="submit" disabled={buttonDisabled} onClick={this.donateOrRunDrawing.bind(this)} className="pure-button pure-button-primary">{this.state.buttonText}</button>
+                  <button type="submit" disabled={buttonDisabled} onClick={this.donateOrRunDrawing.bind(this)} className="pure-button pure-button-primary">{buttonText}</button>
                 </div>
                 </fieldset>
               </form>

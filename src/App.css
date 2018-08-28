@@ -22,6 +22,25 @@ code {
   padding: 45px 20px;
 }
 
+.navbar {
+  text-align: center;
+  position: fixed;
+  padding: 5px;
+  background: #0c1a2b;
+  font-family: 'Oswald', 'Arial Narrow', sans-serif;
+  color: white;
+}
+
+.navbar a {
+  color: #fff;
+}
+
+.navbar a:active,
+.navbar a:focus,
+.navbar a:hover {
+  background: #233e5e;
+}
+
 .pure-button-primary {
   background-color: #0c1a2b;
 }
