@@ -164,7 +164,7 @@ class App extends Component {
     .then((amountToSend) => {
       return token.methods.transfer(this.state.shitCoinGrabBagInstance.address, amountToSend).send({ from: this.state.account})
     }).then(() => {
-      if (this.getContractsBagHasBalance() === 0) {
+      if (this.getContractsBagHasBalance().length === 0) {
         return this.state.shitCoinGrabBagInstance.registerToken(
           this.state.erc20UserSendAddress,
           this.state.erc20UserSendAmount, // Leave out decimals when we store amount in our contract
@@ -315,13 +315,15 @@ class App extends Component {
   winnerWinnerChickenDinnerElement() {
     if (this.state.tokenWonByUser) {
       return <div><h3>CONGRATS you won {this.state.erc20Contracts[this.state.tokenWonByUser].name}</h3>
-        <div>new balance:{this.state.erc20Contracts[this.state.tokenWonByUser].balanceOfUser.toNumber()} at {<a href="`https://etherscan.io/address/${this.state.tokenWonByUser}`">{this.state.tokenWonByUser}</a>}</div></div>
+        <div>new balance:{this.state.erc20Contracts[this.state.tokenWonByUser].balanceOfUser && this.state.erc20Contracts[this.state.tokenWonByUser].balanceOfUser.toNumber()} at {<a href="`https://etherscan.io/address/${this.state.tokenWonByUser}`">{this.state.tokenWonByUser}</a>}</div></div>
     } else {
       return '';
     }
   }
 
   render() {
+    const getContractsBagHasBalance = this.getContractsBagHasBalance();
+    const buttonDisabled = getContractsBagHasBalance.length === 1 && getContractsBagHasBalance[0] === this.state.erc20UserSendAddress;
     return (
       <div className="App">
         <div className="pure-u-1-1 title">
@@ -366,7 +368,7 @@ class App extends Component {
                   <input className="pure-input-1-2" type="text" name="account" placeholder="Erc20 Address" value={this.state.account} readOnly />
                 </div>
                 <div className="pure-controls">
-                  <button type="submit" onClick={this.donateOrRunDrawing.bind(this)} className="pure-button pure-button-primary">{this.state.buttonText}</button>
+                  <button type="submit" disabled={buttonDisabled} onClick={this.donateOrRunDrawing.bind(this)} className="pure-button pure-button-primary">{this.state.buttonText}</button>
                 </div>
                 </fieldset>
               </form>
@@ -382,7 +384,7 @@ class App extends Component {
                 </thead>
                 <tbody>
                 {this.emptyBagRow()}
-                {this.getContractsBagHasBalance().map((address, i) => {
+                {getContractsBagHasBalance.map((address, i) => {
                   return( 
                   <tr key={i} className={i % 2 !== 0 ? 'pure-table-odd' : ''}>
                     <td>
