@@ -187,7 +187,7 @@ class App extends Component {
         this.state.erc20UserSendAddress,
         this.state.erc20UserSendAmount, // Leave out decimals when we store amount in our contract
         this.state.account,
-        {from: this.state.account })
+        {from: this.state.account, gas: 200000 }) // Metamask underestimates here and fails sometimes
       }
     }).then(() => {
       this.setState({web3SendInProgressMessage: ''});
