@@ -10,7 +10,6 @@ Frontend initiates erc20 transfer and sends contract address to backend -> backe
 
 * Backend assumes 18 decimals on erc20 contract- should be able to call contract and receive decimals but that will increase cost of transaction
 
-+// Circuit breaker
 ## Installation
 
 1. Install Truffle globally.

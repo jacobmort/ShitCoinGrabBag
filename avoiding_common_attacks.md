@@ -10,7 +10,7 @@
 * `internal` methods exposed for testing via `ExposedShitCoinGrabBag.sol`
 
 # Lock pragmas to specific compiler version
-* Done for only deployable contract `ShitCoinGrabBag.sol`
+* Done for `ShitCoinGrabBag.sol` and `RandomLibrary.sol`
 
 # Mark untrusted contracts
 * External contract is named `untrustedErc20`
