@@ -9,6 +9,8 @@ contract ShitCoinGrabBag {
   address[] public tokenContractAddresses;
   // Keep track of where we've transferred tokens
   mapping (address => address) public tokensTransferredTo;
+  // Assumes erc20 has 18 decimals. ERC20s are not required to implement `decimals`
+  uint public decimals = 18;
 
   event ReceivedToken(address token, uint256 numTokens);
   event TransferToken(address token, address receiver, uint256 amount);
@@ -47,6 +49,7 @@ contract ShitCoinGrabBag {
   function registerToken(address tokenContract, uint256 amount) public onlyOwner returns (bool){
     // To be called once we have observed transferFrom fire on the erc20 tokenContract with this contract's address
     require(tokenContract != address(0), "contact address must be valid");
+    // Must not underflow/overflow
     assert(ourTokenBalances[tokenContract] + amount >= ourTokenBalances[tokenContract]);
     if (ourTokenBalances[tokenContract] == 0) {
       tokenContractAddresses.push(tokenContract); // Only add if unique
@@ -61,10 +64,12 @@ contract ShitCoinGrabBag {
     // claimed previous token it isn't overwritten and then they don't know erc20 address for token they received
     require(tokenContractAddresses.length > 0, "need some deposited tokens to choose from");
     uint indexForTokenContractToTransferFrom = pickRandomTokenIndex();
+    // Not an invalid index of array
     assert(indexForTokenContractToTransferFrom < tokenContractAddresses.length);
     emit ChoseIndex(indexForTokenContractToTransferFrom);
     address chosenTokenContract = tokenContractAddresses[indexForTokenContractToTransferFrom];
     emit ChoseToken(chosenTokenContract);
+    // We must believe we have a token to transfer
     assert(ourTokenBalances[chosenTokenContract] >= 1);
     ourTokenBalances[chosenTokenContract] -= 1;
     if (ourTokenBalances[chosenTokenContract] == 0) {
@@ -72,8 +77,7 @@ contract ShitCoinGrabBag {
     }
     tokensTransferredTo[destination] = chosenTokenContract;
     EIP20Interface untrustedErc20 = EIP20Interface(chosenTokenContract);
-    // TODO figure out if contract supports getting decimals
-    require(untrustedErc20.transfer(destination, 1 * ( 10 ** 18)), "token transfer must success");
+    require(untrustedErc20.transfer(destination, 1 * ( 10 ** decimals)), "token transfer must success");
     emit TransferToken(chosenTokenContract, destination, 1);
   }
 
