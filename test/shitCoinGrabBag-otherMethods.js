@@ -1,4 +1,4 @@
-const shitCoinGrabBag = artifacts.require("./ShitCoinGrabBag.sol");
+const shitCoinGrabBag = artifacts.require('./ExposedShitCoinGrabBag');
 const AbortHelper = require('./AbortHelper');
 
 contract('ShitCoinGrabBag', function(accounts) {
@@ -13,7 +13,7 @@ contract('ShitCoinGrabBag', function(accounts) {
 
   describe("deleteTokenContract", async () => {
     it("throws whem empty", async () => {
-      await AbortHelper.tryCatch(shitCoinGrabBagInstance.deleteTokenContract(0), "revert");
+      await AbortHelper.tryCatch(shitCoinGrabBagInstance._deleteTokenContract(0), "revert");
     });
 
     describe("with 1 element", async () => {
@@ -22,13 +22,13 @@ contract('ShitCoinGrabBag', function(accounts) {
       });
 
       it("throws on invalid index", async () => {
-        await AbortHelper.tryCatch(shitCoinGrabBagInstance.deleteTokenContract(2), "revert");
+        await AbortHelper.tryCatch(shitCoinGrabBagInstance._deleteTokenContract(2), "revert");
       });
 
       it("works with 0", async () => {
         let keys = await shitCoinGrabBagInstance.getTokenContracts();
         assert.equal(keys.length, 1, "starts with 1");
-        shitCoinGrabBagInstance.deleteTokenContract(0);
+        shitCoinGrabBagInstance._deleteTokenContract(0);
         keys = await shitCoinGrabBagInstance.getTokenContracts();
         assert.equal(keys.length, 0, "now zero");
       });
@@ -43,7 +43,7 @@ contract('ShitCoinGrabBag', function(accounts) {
       it("removes 1st element", async () => {
         let keys = await shitCoinGrabBagInstance.getTokenContracts();
         assert.equal(keys.length, 2, "starts with 2");
-        await shitCoinGrabBagInstance.deleteTokenContract(0);
+        await shitCoinGrabBagInstance._deleteTokenContract(0);
         
         keys = await shitCoinGrabBagInstance.getTokenContracts();
 
@@ -54,7 +54,7 @@ contract('ShitCoinGrabBag', function(accounts) {
       it("removes 2nd element", async () => {
         let keys = await shitCoinGrabBagInstance.getTokenContracts();
         assert.equal(keys.length, 2, "starts with 2");
-        await shitCoinGrabBagInstance.deleteTokenContract(1);
+        await shitCoinGrabBagInstance._deleteTokenContract(1);
         
         keys = await shitCoinGrabBagInstance.getTokenContracts();
 

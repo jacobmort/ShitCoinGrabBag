@@ -36,7 +36,7 @@ contract ShitCoinGrabBag {
     return tokensTransferredTo[winner];
   }
 
-  function coinDrawing(address tokenContract, uint256 amount, address sender) public onlyOwner returns (bool) {
+  function coinDrawing(address tokenContract, uint256 amount, address sender) external onlyOwner returns (bool) {
     if (registerToken(tokenContract, amount)) {
       transferAToken(sender);
     } else {
@@ -56,14 +56,14 @@ contract ShitCoinGrabBag {
     return true;
   }
 
-  function transferAToken(address destination) public onlyOwner {
+  function transferAToken(address destination) internal onlyOwner {
     // TODO require that tokensTransferredTo[destination] be 0x0 so that if destination hasn't already
     // claimed previous token it isn't overwritten and then they don't know erc20 address for token they received
     require(tokenContractAddresses.length > 0, "need some deposited tokens to choose from");
     uint indexForTokenContractToTransferFrom = pickRandomTokenIndex();
+    assert(indexForTokenContractToTransferFrom < tokenContractAddresses.length);
     emit ChoseIndex(indexForTokenContractToTransferFrom);
     address chosenTokenContract = tokenContractAddresses[indexForTokenContractToTransferFrom];
-    assert(chosenTokenContract < tokenContractAddresses.length);
     emit ChoseToken(chosenTokenContract);
     assert(ourTokenBalances[chosenTokenContract] >= 1);
     ourTokenBalances[chosenTokenContract] -= 1;
@@ -77,7 +77,7 @@ contract ShitCoinGrabBag {
     emit TransferToken(chosenTokenContract, destination, 1);
   }
 
-  function deleteTokenContract(uint256 index) public onlyOwner returns(bool) { 
+  function deleteTokenContract(uint256 index) internal onlyOwner returns(bool) { 
     // This moves the last element of the array into spot we are deleting then shortens length by 1
     require(tokenContractAddresses.length > 0, "Must have something to delete");
     require(tokenContractAddresses.length >= index, "Must be valid index");
@@ -88,7 +88,7 @@ contract ShitCoinGrabBag {
   }
 
   // TODO better seed than block.timestamp
-  function pickRandomTokenIndex() public view returns (uint) {
+  function pickRandomTokenIndex() internal view returns (uint) {
     return randomGen(block.timestamp, tokenContractAddresses.length);
   }
 

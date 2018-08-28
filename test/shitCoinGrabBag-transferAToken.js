@@ -1,5 +1,5 @@
 const AbortHelper = require('./AbortHelper');
-const shitCoinGrabBag = artifacts.require("./ShitCoinGrabBag.sol");
+const shitCoinGrabBag = artifacts.require("./ExposedShitCoinGrabBag.sol");
 const dummyErc20 = artifacts.require("./DummyErc20.sol");
 
 contract('ShitCoinGrabBag', function(accounts) {
@@ -18,7 +18,7 @@ contract('ShitCoinGrabBag', function(accounts) {
 
   describe("transferAToken:", () => {
     it("abort when no tokens", async () => {
-      await AbortHelper.tryCatch(shitCoinGrabBagInstance.transferAToken(user, {from: owner}), "revert");
+      await AbortHelper.tryCatch(shitCoinGrabBagInstance._transferAToken(user, {from: owner}), "revert");
     });
  
     describe("one type of erc20", () =>{
@@ -29,11 +29,11 @@ contract('ShitCoinGrabBag', function(accounts) {
         });
 
         it("abort with an error if called by a non-owner", async () => {
-          await AbortHelper.tryCatch(shitCoinGrabBagInstance.transferAToken(user, {from: user}), "revert");
+          await AbortHelper.tryCatch(shitCoinGrabBagInstance._transferAToken(user, {from: user}), "revert");
         });
 
         it("chooses the available one, removes from contract and transfers.  Then aborts on next call when empty", async () => {
-          await shitCoinGrabBagInstance.transferAToken(user, {from: owner});
+          await shitCoinGrabBagInstance._transferAToken(user, {from: owner});
           
           let tokenContractDestination = await shitCoinGrabBagInstance.getContractAddressOfTransferredToken(user);
           let tokenContractAddresses = await shitCoinGrabBagInstance.getTokenContracts();
@@ -45,7 +45,7 @@ contract('ShitCoinGrabBag', function(accounts) {
           assert.equal(tokenContractAddresses.length, 0, "there was only 1 contract with 1 token = no more");
           assert(tokenBalanceOurs.equals(0), "shit coin has been drained");
           assert(tokenBalanceTheirs.equals(oneErc20TokenOf18Decimal), "token has ended up with them");
-          await AbortHelper.tryCatch(shitCoinGrabBagInstance.transferAToken(user, {from: owner}), "revert");
+          await AbortHelper.tryCatch(shitCoinGrabBagInstance._transferAToken(user, {from: owner}), "revert");
         });
       });
       describe("more than 1 available", () => {
@@ -54,7 +54,7 @@ contract('ShitCoinGrabBag', function(accounts) {
           await shitCoinGrabBagInstance.registerToken(erc20ContractInstance.address, 2, {from: owner});
         });
         it("can take twice, removes from contract and transfers then aborts on extra call", async () => {
-            await shitCoinGrabBagInstance.transferAToken(user, {from: owner});
+            await shitCoinGrabBagInstance._transferAToken(user, {from: owner});
 
             let tokenContractDestination = await shitCoinGrabBagInstance.getContractAddressOfTransferredToken(user);
             let tokenContractAddresses = await shitCoinGrabBagInstance.getTokenContracts();
@@ -66,7 +66,7 @@ contract('ShitCoinGrabBag', function(accounts) {
             assert(tokenBalanceOurs.equals(1), "we have 1 more token left");
             assert(tokenBalanceTheirs.equals(oneErc20TokenOf18Decimal), "we have transferred 1 to them");
             
-            await shitCoinGrabBagInstance.transferAToken(user, {from: owner});
+            await shitCoinGrabBagInstance._transferAToken(user, {from: owner});
 
             tokenContractDestination = await shitCoinGrabBagInstance.getContractAddressOfTransferredToken(user);
             tokenBalanceOurs = await shitCoinGrabBagInstance.getTokenBalance(erc20ContractInstance.address);
@@ -77,7 +77,7 @@ contract('ShitCoinGrabBag', function(accounts) {
             assert(tokenBalanceOurs.equals(0), "we've exhausted our tokens");
             assert(tokenBalanceTheirs.equals(2 * oneErc20TokenOf18Decimal), "we've transferred both to them");
             assert.equal(tokenContractAddresses.length, 0, "no balance = no contracts");
-            await AbortHelper.tryCatch(shitCoinGrabBagInstance.transferAToken(user, {from: owner}), "revert");
+            await AbortHelper.tryCatch(shitCoinGrabBagInstance._transferAToken(user, {from: owner}), "revert");
         });
       });
     });
@@ -89,7 +89,7 @@ contract('ShitCoinGrabBag', function(accounts) {
         await shitCoinGrabBagInstance.registerToken(anotherErc20ContractInstance.address, 1, {from: owner});
       });
       it("can take twice, removes from contract and transfers then aborts on extra call", async () => {
-        await shitCoinGrabBagInstance.transferAToken(user, {from: owner});
+        await shitCoinGrabBagInstance._transferAToken(user, {from: owner});
 
         let tokenContractDestination = await shitCoinGrabBagInstance.getContractAddressOfTransferredToken(user);
         let tokenContractAddresses = await shitCoinGrabBagInstance.getTokenContracts();
@@ -114,7 +114,7 @@ contract('ShitCoinGrabBag', function(accounts) {
         assert(otherBalanceTheirs.equals(0), "nothing transferred here yet");
         assert(tokenBalanceTheirs.equals(oneErc20TokenOf18Decimal), "we have transferred 1 to them");
 
-        await shitCoinGrabBagInstance.transferAToken(user, {from: owner});
+        await shitCoinGrabBagInstance._transferAToken(user, {from: owner});
 
         tokenContractDestination = await shitCoinGrabBagInstance.getContractAddressOfTransferredToken(user);
         tokenContractAddresses = await shitCoinGrabBagInstance.getTokenContracts();
@@ -137,7 +137,7 @@ contract('ShitCoinGrabBag', function(accounts) {
         assert(tokenBalanceTheirs.equals(oneErc20TokenOf18Decimal), "we have transferred 1 of these to them");
         assert(otherBalanceTheirs.equals(oneErc20TokenOf18Decimal), "we have transferred 1 of these to them");
 
-        await AbortHelper.tryCatch(shitCoinGrabBagInstance.transferAToken(user, {from: owner}), "revert");
+        await AbortHelper.tryCatch(shitCoinGrabBagInstance._transferAToken(user, {from: owner}), "revert");
       });
     });
   });
