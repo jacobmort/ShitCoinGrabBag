@@ -79,6 +79,9 @@ class App extends Component {
       events.push(this.state.shitCoinGrabBagInstance.ReceivedToken());
       events.forEach((event) => {
         event.watch((err, result) => {
+          if (result.event === "TransferToken") {
+            this.refreshAvailableTokens();
+          }
           console.log(result);
         });
       });
@@ -338,7 +341,7 @@ class App extends Component {
     if (bagOnlyContainsSameTokenAsUserAddress) {
       this.state.addressError = 'Shit bag only contains these no point in exchanging';
     }
-    const buttonText = this.getContractsBagHasBalance() === 0 ? 'Donate tokens' : 'Exchange My Lemon';
+    const buttonText = getContractsBagHasBalance.length === 0 ? 'Donate tokens' : 'Exchange My Lemon';
     return (
       <div className="App">
         { this.state.web3SendInProgressMessage && <div>
