@@ -11,6 +11,23 @@ contract('ShitCoinGrabBag', function(accounts) {
     shitCoinGrabBagInstance = await shitCoinGrabBag.new({from: owner});
   });
 
+  describe("toggleContract", () => {
+    describe("non owner", () => {
+      it("reverts", async () => {
+        await AbortHelper.tryCatch(shitCoinGrabBagInstance.toggleContract({from: nonOwner}), "revert");
+      });
+    })
+    describe("owner", () => {
+      it("toggles state", async () => {
+        expect(shitCoinGrabBagInstance.halt === false, "contract starts in runner state");
+        await shitCoinGrabBagInstance.toggleContract({from: owner});
+        expect(shitCoinGrabBagInstance.halt === true, "toggle to halted");
+        await shitCoinGrabBagInstance.toggleContract({from: owner});
+        expect(shitCoinGrabBagInstance.halt === false, "toggles back to not");
+      });
+    });
+  });
+
   describe("pickRandomTokenIndex", async() => {
     it("throws when empty", async () => {
       await AbortHelper.tryCatch(shitCoinGrabBagInstance._pickRandomTokenIndex(), "invalid opcode");

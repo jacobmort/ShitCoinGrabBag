@@ -32,6 +32,12 @@ contract('ShitCoinGrabBag', function(accounts) {
           await AbortHelper.tryCatch(shitCoinGrabBagInstance._transferAToken(user, {from: user}), "revert");
         });
 
+        it("aborts if halt set", async () => {
+          await shitCoinGrabBagInstance.toggleContract({from: owner});
+          expect(shitCoinGrabBagInstance.halt === true, "toggle to halted");
+          await AbortHelper.tryCatch(shitCoinGrabBagInstance._transferAToken(user, {from: owner}), "revert");
+        });
+
         it("chooses the available one, removes from contract and transfers.  Then aborts on next call when empty", async () => {
           await shitCoinGrabBagInstance._transferAToken(user, {from: owner});
           

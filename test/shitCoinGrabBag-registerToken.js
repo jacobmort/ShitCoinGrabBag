@@ -48,6 +48,12 @@ contract('ShitCoinGrabBag', function(accounts) {
         assert.equal(keys[0], contractAccount);
         assert.equal(keys[1], accounts[3]);
       });
+
+      it("aborts if halt set", async () => {
+        await shitCoinGrabBagInstance.toggleContract({from: owner});
+        expect(shitCoinGrabBagInstance.halt === true, "toggle to halted");
+        await AbortHelper.tryCatch(shitCoinGrabBagInstance.registerToken(contractAccount, 1, {from: owner}), "revert");
+      });
     });
 
     it("abort if call causes overflow", async () => {

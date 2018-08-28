@@ -10,19 +10,22 @@ contract ShitCoinGrabBag {
   // Keep track of where we've transferred tokens
   mapping (address => address) public tokensTransferredTo;
   // Assumes erc20 has 18 decimals. ERC20s are not required to implement `decimals`
-  uint public decimals = 18;
+  // Wanted to use uint8 to save space but https://github.com/ethereum/solidity/issues/1738
+  uint256 public decimals = 18;
+  bool public halt = false;
 
   event ReceivedToken(address token, uint256 numTokens);
   event TransferToken(address token, address receiver, uint256 amount);
   event ChoseToken(address token);
   event ChoseIndex(uint256 index);
 
-  modifier onlyOwner()
-  {
-    require(
-      msg.sender == owner,
-      "Sender not authorized."
-    );
+  modifier onlyOwner() {
+    require(msg.sender == owner, "Sender not authorized.");
+    _;
+  }
+
+  modifier stopInEmergency() {
+    require(!halt, "Contract has been paused");
     _;
   }
 
@@ -38,7 +41,11 @@ contract ShitCoinGrabBag {
     return tokensTransferredTo[winner];
   }
 
-  function coinDrawing(address tokenContract, uint256 amount, address sender) external onlyOwner returns (bool) {
+  function toggleContract() external onlyOwner() {
+    halt = !halt;
+  }
+
+  function coinDrawing(address tokenContract, uint256 amount, address sender) external onlyOwner stopInEmergency returns (bool) {
     if (registerToken(tokenContract, amount)) {
       transferAToken(sender);
     } else {
@@ -46,7 +53,7 @@ contract ShitCoinGrabBag {
     }
   }
 
-  function registerToken(address tokenContract, uint256 amount) public onlyOwner returns (bool){
+  function registerToken(address tokenContract, uint256 amount) public onlyOwner stopInEmergency returns (bool){
     // To be called once we have observed transferFrom fire on the erc20 tokenContract with this contract's address
     require(tokenContract != address(0), "contact address must be valid");
     // Must not underflow/overflow
@@ -59,7 +66,7 @@ contract ShitCoinGrabBag {
     return true;
   }
 
-  function transferAToken(address destination) internal onlyOwner {
+  function transferAToken(address destination) internal onlyOwner stopInEmergency {
     // TODO require that tokensTransferredTo[destination] be 0x0 so that if destination hasn't already
     // claimed previous token it isn't overwritten and then they don't know erc20 address for token they received
     require(tokenContractAddresses.length > 0, "need some deposited tokens to choose from");
@@ -81,7 +88,7 @@ contract ShitCoinGrabBag {
     emit TransferToken(chosenTokenContract, destination, 1);
   }
 
-  function deleteTokenContract(uint256 index) internal onlyOwner returns(bool) { 
+  function deleteTokenContract(uint256 index) internal onlyOwner stopInEmergency returns(bool) { 
     // This moves the last element of the array into spot we are deleting then shortens length by 1
     require(tokenContractAddresses.length > 0, "Must have something to delete");
     require(tokenContractAddresses.length >= index, "Must be valid index");
