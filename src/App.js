@@ -66,7 +66,7 @@ class App extends Component {
       return this.refreshAvailableTokens();
     }).catch((err) => {
       console.log(err);
-      // TODO show dialog to login with MetaMask
+      this.setState({web3SendInProgressMessage: 'Site designed to work with MetaMask- please login'});
     });
   }
 
@@ -319,7 +319,7 @@ class App extends Component {
   winnerWinnerChickenDinnerElement() {
     if (this.state.tokenWonByUser && this.state.erc20Contracts[this.state.tokenWonByUser]) {
       return <nav className="navbar pure-menu pure-menu-horizontal">
-        <div><h3><i>CONGRATS are ownership of a </i><b>{this.state.erc20Contracts[this.state.tokenWonByUser].name}</b></h3>
+        <div><h3><i>CONGRATS on ownership of a </i><b className="poo">{this.state.erc20Contracts[this.state.tokenWonByUser].name}</b>!</h3>
         <div><i>your new balance: </i><b>
           {this.state.erc20Contracts[this.state.tokenWonByUser].balanceOfUser && this.state.erc20Contracts[this.state.tokenWonByUser].balanceOfUser.toNumber()}
           </b> <i>at</i>   {<a href="`https://etherscan.io/address/${this.state.tokenWonByUser}`">{this.state.tokenWonByUser}</a>}
@@ -349,7 +349,7 @@ class App extends Component {
         }
         {this.winnerWinnerChickenDinnerElement()}
         <div className="pure-u-1-1 title">
-          <h1>Shit Coin Grab Bag</h1>
+          <h1>Shit Token Grab Bag</h1>
           <div>
           When life gives you erc20 lemons use this to squeeze them into...other lemons.
         </div>
@@ -371,7 +371,7 @@ class App extends Component {
                       <span className="pure-form-message-inline">{this.state.addressError}</span>
                 </div>
                 <div className="pure-control-group">
-                  <label htmlFor="tokens">Amount of {this.userTokenName()}</label>
+                  <label htmlFor="tokens">Amount of <b className="poo">{this.userTokenName()}</b></label>
                   <input className="pure-input-1-2" type="text" name="tokens" placeholder="Whole tokens" value={this.state.erc20UserSendAmount} onChange={this.handleAmountChange.bind(this)}/>
                 </div>
                 <div className="pure-control-group">
@@ -379,7 +379,7 @@ class App extends Component {
                   <input className="pure-input-1-2" type="text" name="balance" placeholder="Your balance for address" value={this.userBalance()} readOnly />
                 </div>
                 <div className="pure-control-group">
-                  <label htmlFor="account"><a href={`https://etherscan.io/address/${this.state.account}`}>Of your account</a></label>
+                  <label htmlFor="account"><a href={`https://etherscan.io/address/${this.state.account}`}>Your account</a></label>
                   <input className="pure-input-1-2" type="text" name="account" placeholder="Erc20 Address" value={this.state.account} readOnly />
                 </div>
                 <div className="pure-controls">

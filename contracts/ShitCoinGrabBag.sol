@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity 0.4.24;
 import "./EIP20Interface.sol";
 
 contract ShitCoinGrabBag {
@@ -24,15 +24,15 @@ contract ShitCoinGrabBag {
     _;
   }
 
-  function getTokenBalance(address tokenContract) public view returns (uint256) {
+  function getTokenBalance(address tokenContract) external view returns (uint256) {
     return ourTokenBalances[tokenContract];
   }
 
-  function getTokenContracts() public view returns (address[]) {
+  function getTokenContracts() external view returns (address[]) {
     return tokenContractAddresses;
   }
 
-  function getContractAddressOfTransferredToken(address winner) public view returns (address) {
+  function getContractAddressOfTransferredToken(address winner) external view returns (address) {
     return tokensTransferredTo[winner];
   }
 
@@ -47,7 +47,7 @@ contract ShitCoinGrabBag {
   function registerToken(address tokenContract, uint256 amount) public onlyOwner returns (bool){
     // To be called once we have observed transferFrom fire on the erc20 tokenContract with this contract's address
     require(tokenContract != address(0), "contact address must be valid");
-    require(ourTokenBalances[tokenContract] + amount >= ourTokenBalances[tokenContract], "must not decrease amount");
+    assert(ourTokenBalances[tokenContract] + amount >= ourTokenBalances[tokenContract]);
     if (ourTokenBalances[tokenContract] == 0) {
       tokenContractAddresses.push(tokenContract); // Only add if unique
     }
@@ -63,26 +63,18 @@ contract ShitCoinGrabBag {
     uint indexForTokenContractToTransferFrom = pickRandomTokenIndex();
     emit ChoseIndex(indexForTokenContractToTransferFrom);
     address chosenTokenContract = tokenContractAddresses[indexForTokenContractToTransferFrom];
+    assert(chosenTokenContract < tokenContractAddresses.length);
     emit ChoseToken(chosenTokenContract);
-    require(ourTokenBalances[chosenTokenContract] >= 1, "should not happen");
+    assert(ourTokenBalances[chosenTokenContract] >= 1);
     ourTokenBalances[chosenTokenContract] -= 1;
     if (ourTokenBalances[chosenTokenContract] == 0) {
       deleteTokenContract(indexForTokenContractToTransferFrom);
     }
     tokensTransferredTo[destination] = chosenTokenContract;
-    EIP20Interface erc20 = EIP20Interface(chosenTokenContract);
-    erc20.transfer(destination, 1 * ( 10 ** 18)); // TODO figure out if contract supports getting decimals
+    EIP20Interface untrustedErc20 = EIP20Interface(chosenTokenContract);
+    // TODO figure out if contract supports getting decimals
+    require(untrustedErc20.transfer(destination, 1 * ( 10 ** 18)), "token transfer must success");
     emit TransferToken(chosenTokenContract, destination, 1);
-  }
-  
-  // https://gist.github.com/alexvandesande/259b4ffb581493ec0a1c
-  // TODO improve randomness?
-  function randomGen(uint seed, uint max) public view returns (uint randomNumber) {
-    return(uint(keccak256(abi.encodePacked(blockhash(block.number-1), seed )))%max);
-  }
-
-  function pickRandomTokenIndex() public view returns (uint) {
-    return randomGen(block.timestamp, tokenContractAddresses.length);
   }
 
   function deleteTokenContract(uint256 index) public onlyOwner returns(bool) { 
@@ -93,5 +85,16 @@ contract ShitCoinGrabBag {
     tokenContractAddresses[index] = lastElement;
     tokenContractAddresses.length--;
     return true;
+  }
+
+  // TODO better seed than block.timestamp
+  function pickRandomTokenIndex() public view returns (uint) {
+    return randomGen(block.timestamp, tokenContractAddresses.length);
+  }
+
+  // https://gist.github.com/alexvandesande/259b4ffb581493ec0a1c
+  // TODO improve randomness?
+  function randomGen(uint seed, uint max) private view returns (uint randomNumber) {
+    return(uint(keccak256(abi.encodePacked(blockhash(block.number-1), seed))) % max);
   }
 }

@@ -35,6 +35,10 @@ code {
   color: #fff;
 }
 
+.poo {
+  color: brown;
+}
+
 .navbar a:active,
 .navbar a:focus,
 .navbar a:hover {
