@@ -309,10 +309,14 @@ class App extends Component {
   }
 
   winnerWinnerChickenDinnerElement() {
-    if (this.state.tokenWonByUser) {
+    if (this.state.tokenWonByUser && this.state.erc20Contracts[this.state.tokenWonByUser]) {
       return <nav className="navbar pure-menu pure-menu-horizontal">
         <div><h3><i>CONGRATS you won a </i><b>{this.state.erc20Contracts[this.state.tokenWonByUser].name}</b></h3>
-        <div><i>your new balance: </i><b>{this.state.erc20Contracts[this.state.tokenWonByUser].balanceOfUser && this.state.erc20Contracts[this.state.tokenWonByUser].balanceOfUser.toNumber()}</b> <i>at</i>   {<a href="`https://etherscan.io/address/${this.state.tokenWonByUser}`">{this.state.tokenWonByUser}</a>}</div></div>
+        <div><i>your new balance: </i><b>
+          {this.state.erc20Contracts[this.state.tokenWonByUser].balanceOfUser && this.state.erc20Contracts[this.state.tokenWonByUser].balanceOfUser.toNumber()}
+          </b> <i>at</i>   {<a href="`https://etherscan.io/address/${this.state.tokenWonByUser}`">{this.state.tokenWonByUser}</a>}
+          </div>
+        </div>
       </nav>
     } else {
       return '';
