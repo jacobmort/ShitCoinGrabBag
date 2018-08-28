@@ -87,14 +87,14 @@ contract ShitCoinGrabBag {
     return true;
   }
 
-  // TODO better seed than block.timestamp
+  // TODO better seed than block.timestamp?
   function pickRandomTokenIndex() internal view returns (uint) {
     return randomGen(block.timestamp, tokenContractAddresses.length);
   }
 
   // https://gist.github.com/alexvandesande/259b4ffb581493ec0a1c
   // TODO improve randomness?
-  function randomGen(uint seed, uint max) private view returns (uint randomNumber) {
+  function randomGen(uint seed, uint max) private view returns (uint randomNumber) {    
     return(uint(keccak256(abi.encodePacked(blockhash(block.number-1), seed))) % max);
   }
 }

@@ -11,8 +11,36 @@ contract('ShitCoinGrabBag', function(accounts) {
     shitCoinGrabBagInstance = await shitCoinGrabBag.new({from: owner});
   });
 
+  describe("pickRandomTokenIndex", async() => {
+    it("throws when empty", async () => {
+      await AbortHelper.tryCatch(shitCoinGrabBagInstance._pickRandomTokenIndex(), "invalid opcode");
+    });
+    describe("with 1 element", async () => {
+      beforeEach(async () => {
+        await shitCoinGrabBagInstance.registerToken("0x0139f72d20b29fa0dca007192c9834496d7770a9", 1, {from: owner});
+      });
+
+      it("returns the element", async () => {
+        let index = await shitCoinGrabBagInstance._pickRandomTokenIndex();
+        assert.equal(index, 0, "only element available");
+      });
+    });
+
+    describe("with 2 elements", async () => {
+      beforeEach(async () => {
+        await shitCoinGrabBagInstance.registerToken("0x0139f72d20b29fa0dca007192c9834496d7770a1", 1, {from: owner});
+        await shitCoinGrabBagInstance.registerToken("0x0139f72d20b29fa0dca007192c9834496d7770a2", 1, {from: owner});
+      });
+
+      it("returns an element", async () => {
+        let index = await shitCoinGrabBagInstance._pickRandomTokenIndex();
+        assert(index == 0 || index == 1, "only element available");
+      });
+    });
+  });
+
   describe("deleteTokenContract", async () => {
-    it("throws whem empty", async () => {
+    it("throws when empty", async () => {
       await AbortHelper.tryCatch(shitCoinGrabBagInstance._deleteTokenContract(0), "revert");
     });
 
