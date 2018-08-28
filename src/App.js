@@ -354,7 +354,7 @@ class App extends Component {
     const bagOnlyContainsSameTokenAsUserAddress = getContractsBagHasBalance.length === 1 && getContractsBagHasBalance[0] === this.state.erc20UserSendAddress;
     const buttonDisabled = bagOnlyContainsSameTokenAsUserAddress;
     if (bagOnlyContainsSameTokenAsUserAddress) {
-      this.state.addressError = 'Shit bag only contains these no point in exchanging';
+      this.state.addressError = 'Bag only contains these no point in exchanging.  Use other DummyErc20 address';
     }
     const buttonText = getContractsBagHasBalance.length === 0 ? 'Donate tokens' : 'Exchange My Lemon';
     return (
