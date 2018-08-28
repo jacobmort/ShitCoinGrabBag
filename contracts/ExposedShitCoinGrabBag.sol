@@ -9,8 +9,4 @@ contract ExposedShitCoinGrabBag is ShitCoinGrabBag {
   function _transferAToken(address destination) public onlyOwner {
     return transferAToken(destination);
   }
-
-  function _pickRandomTokenIndex() public view returns (uint) {
-    return pickRandomTokenIndex();
-  }
 }

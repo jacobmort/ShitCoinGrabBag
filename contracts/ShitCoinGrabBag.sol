@@ -1,5 +1,6 @@
 pragma solidity 0.4.24;
 import "./EIP20Interface.sol";
+import "./RandomLibrary.sol";
 
 contract ShitCoinGrabBag {
   address public owner = msg.sender;
@@ -29,23 +30,24 @@ contract ShitCoinGrabBag {
     _;
   }
 
-  function getTokenBalance(address tokenContract) external view returns (uint256) {
+  function getTokenBalance(address tokenContract) public view returns (uint256) {
     return ourTokenBalances[tokenContract];
   }
 
-  function getTokenContracts() external view returns (address[]) {
+  function getTokenContracts() public view returns (address[]) {
     return tokenContractAddresses;
   }
 
-  function getContractAddressOfTransferredToken(address winner) external view returns (address) {
+  function getContractAddressOfTransferredToken(address winner) public view returns (address) {
     return tokensTransferredTo[winner];
   }
 
-  function toggleContract() external onlyOwner() {
+  function toggleContract() public onlyOwner() {
     halt = !halt;
   }
-
-  function coinDrawing(address tokenContract, uint256 amount, address sender) external onlyOwner stopInEmergency returns (bool) {
+  
+  // TODO make external once we have a separate service for watching erc20 Transfer events
+  function coinDrawing(address tokenContract, uint256 amount, address sender) public onlyOwner stopInEmergency returns (bool) {
     if (registerToken(tokenContract, amount)) {
       transferAToken(sender);
     } else {
@@ -53,6 +55,7 @@ contract ShitCoinGrabBag {
     }
   }
 
+  // TODO make external once we have a separate service for watching erc20 Transfer events
   function registerToken(address tokenContract, uint256 amount) public onlyOwner stopInEmergency returns (bool){
     // To be called once we have observed transferFrom fire on the erc20 tokenContract with this contract's address
     require(tokenContract != address(0), "contact address must be valid");
@@ -70,7 +73,7 @@ contract ShitCoinGrabBag {
     // TODO require that tokensTransferredTo[destination] be 0x0 so that if destination hasn't already
     // claimed previous token it isn't overwritten and then they don't know erc20 address for token they received
     require(tokenContractAddresses.length > 0, "need some deposited tokens to choose from");
-    uint indexForTokenContractToTransferFrom = pickRandomTokenIndex();
+    uint indexForTokenContractToTransferFrom = RandomLibrary.pickRandomTokenIndex(tokenContractAddresses.length);
     // Not an invalid index of array
     assert(indexForTokenContractToTransferFrom < tokenContractAddresses.length);
     emit ChoseIndex(indexForTokenContractToTransferFrom);
@@ -96,16 +99,5 @@ contract ShitCoinGrabBag {
     tokenContractAddresses[index] = lastElement;
     tokenContractAddresses.length--;
     return true;
-  }
-
-  // TODO better seed than block.timestamp?
-  function pickRandomTokenIndex() internal view returns (uint) {
-    return randomGen(block.timestamp, tokenContractAddresses.length);
-  }
-
-  // https://gist.github.com/alexvandesande/259b4ffb581493ec0a1c
-  // TODO improve randomness?
-  function randomGen(uint seed, uint max) private view returns (uint randomNumber) {    
-    return(uint(keccak256(abi.encodePacked(blockhash(block.number-1), seed))) % max);
   }
 }
